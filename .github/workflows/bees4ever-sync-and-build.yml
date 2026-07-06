@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+      workflows: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -46,6 +47,7 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+      workflows: write
     outputs:
       sync_ok: ${{ steps.merge.outputs.sync_ok }}
       updated: ${{ steps.merge.outputs.updated }}
