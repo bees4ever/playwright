@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 6 * * *'
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: Build and push images even if release branch did not change
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -95,7 +100,11 @@ jobs:
   build-docker:
     name: Build and publish Docker images
     needs: sync-release
-    if: needs.sync-release.outputs.sync_ok == 'true' && needs.sync-release.outputs.updated == 'true'
+    if: >-
+      (needs.sync-release.outputs.sync_ok == 'true' &&
+       needs.sync-release.outputs.updated == 'true') ||
+      (needs.sync-release.outputs.sync_ok == 'true' &&
+       inputs.force_build == true)
     runs-on: ubuntu-22.04
     permissions:
       contents: read
