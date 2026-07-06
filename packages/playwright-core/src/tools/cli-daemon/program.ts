@@ -83,7 +83,7 @@ function globalConfigFile(): string {
   return path.join(process.env['PWTEST_CLI_GLOBAL_CONFIG'] ?? os.homedir(), '.playwright', 'cli.config.json');
 }
 
-async function initWorkspace(initSkills: string | undefined) {
+export async function initWorkspace(initSkills: string | undefined) {
   const cwd = process.cwd();
   const playwrightDir = path.join(cwd, '.playwright');
   await fs.promises.mkdir(playwrightDir, { recursive: true });
@@ -139,7 +139,7 @@ async function findOrInstallDefaultBrowser() {
 
 async function resolveAndInstall(nameOrChannel: string) {
   const executables = browserRegistry.resolveBrowsers([nameOrChannel], { shell: 'no' });
-  await browserRegistry.install(executables);
+  await browserRegistry.install(executables, { gc: false });
 }
 
 async function createDefaultConfig(channel: string) {

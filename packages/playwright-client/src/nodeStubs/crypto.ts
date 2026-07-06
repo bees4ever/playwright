@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Copyright (c) Microsoft Corporation.
  *
@@ -15,9 +14,11 @@
  * limitations under the License.
  */
 
-const { program } = require('playwright-core/lib/tools/cli-client/program');
+export function randomBytes(size: number): { toString(encoding?: string): string } {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(size));
+  return {
+    toString: () => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''),
+  };
+}
 
-program().catch(e => {
-  console.error(e.message);
-  process.exit(1);
-});
+export default { randomBytes };

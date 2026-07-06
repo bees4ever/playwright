@@ -68,8 +68,10 @@ export class FrameSelectors {
   async queryArrayInMainWorld(selector: string, scope?: ElementHandle): Promise<JSHandle<Element[]>> {
     const resolved = await this.resolveInjectedForSelector(selector, { mainWorld: true }, scope);
     // Be careful, |this.frame| can be different from |resolved.frame|.
-    if (!resolved)
-      throw new Error(`Failed to find frame for selector "${selector}"`);
+    if (!resolved) {
+      const context = await this.frame.context('main');
+      return await context.evaluateHandle(() => { return []; });
+    }
     return await resolved.injected.evaluateHandle((injected, { info, scope }) => {
       const elements = injected.querySelectorAll(info.parsed, scope || document);
       injected.checkDeprecatedSelectorUsage(info.parsed, elements);
@@ -77,12 +79,10 @@ export class FrameSelectors {
     }, { info: resolved.info, scope: resolved.scope });
   }
 
-  async queryCount(selector: string, options: any): Promise<number> {
+  async queryCount(selector: string): Promise<number> {
     const resolved = await this.resolveInjectedForSelector(selector);
-    // Be careful, |this.frame| can be different from |resolved.frame|.
     if (!resolved)
-      throw new Error(`Failed to find frame for selector "${selector}"`);
-    await options.__testHookBeforeQuery?.();
+      return 0;
     return await resolved.injected.evaluate((injected, { info }) => {
       const elements = injected.querySelectorAll(info.parsed, document);
       injected.checkDeprecatedSelectorUsage(info.parsed, elements);

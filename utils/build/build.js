@@ -579,6 +579,7 @@ for (const pkg of workspace.packages()) {
       'inspector': clientNodeStub('inspector'),
       'async_hooks': clientNodeStub('async_hooks'),
       'events': clientNodeStub('events'),
+      'crypto': clientNodeStub('crypto'),
       // Vendored npm dep used for terminal colors; no-op in the browser.
       'colors/safe': clientNodeStub('colors'),
     },
@@ -589,6 +590,8 @@ for (const pkg of workspace.packages()) {
     filePath('packages/playwright-client/src'),
     filePath('packages/playwright-core/src/client'),
     filePath('packages/isomorphic'),
+    filePath('packages/utils'),
+    filePath('packages/protocol/src'),
   ]));
 }
 
@@ -662,7 +665,7 @@ steps.push(new EsbuildStep({
     setup: build => build.onResolve({ filter: /utilsBundle/ },
         () => ({ path: './utilsBundle', external: true })),
   }, dynamicImportToRequirePlugin],
-}, [playwrightCoreSrc]));
+}, [playwrightCoreSrc, filePath('packages/protocol/src')]));
 
 function assertCoreBundleHasNoNodeModules() {
   const bundlePath = filePath('packages/playwright-core/lib/coreBundle.js');
@@ -984,7 +987,7 @@ onChanges.push({
     'packages/playwright-core/src/server/chromium/protocol.d.ts',
   ],
   mustExist: [
-    'packages/playwright-core/lib/server/deviceDescriptorsSource.json',
+    'packages/isomorphic/deviceDescriptorsSource.json',
   ],
   script: 'utils/generate_types/index.js',
 });
