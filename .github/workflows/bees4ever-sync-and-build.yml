@@ -24,17 +24,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Configure git push token
-        env:
-          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash bees4ever/configure-git-push.sh
 
       - name: Merge upstream main
         run: |
@@ -43,7 +38,12 @@ jobs:
           git merge upstream/main --no-edit
 
       - name: Push main
-        run: git push origin main
+        env:
+          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          bash bees4ever/configure-git-push.sh
+          git push origin main
 
   sync-release:
     name: Sync release branch from upstream
@@ -61,17 +61,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Configure git push token
-        env:
-          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash bees4ever/configure-git-push.sh
 
       - name: Read config
         id: config
@@ -92,6 +87,9 @@ jobs:
 
       - name: Merge upstream release branch
         id: merge
+        env:
+          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           branch="${{ steps.config.outputs.release_branch }}"
           before="$(git rev-parse HEAD)"
@@ -101,6 +99,8 @@ jobs:
             exit 1
           fi
           after="$(git rev-parse HEAD)"
+          git show origin/main:bees4ever/configure-git-push.sh > /tmp/configure-git-push.sh
+          bash /tmp/configure-git-push.sh
           git push origin "${branch}"
           echo "sync_ok=true" >> "$GITHUB_OUTPUT"
           if [[ "${before}" != "${after}" ]]; then

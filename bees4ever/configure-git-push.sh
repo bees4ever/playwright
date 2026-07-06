@@ -7,4 +7,5 @@ if [[ -z "${BEES4EVER_GITHUB_TOKEN:-}" ]]; then
   exit 1
 fi
 
+git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
 git remote set-url origin "https://x-access-token:${BEES4EVER_GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"

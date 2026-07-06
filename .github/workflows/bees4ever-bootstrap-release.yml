@@ -19,17 +19,12 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Configure git push token
-        env:
-          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash bees4ever/configure-git-push.sh
 
       - name: Read config
         id: config
@@ -51,6 +46,9 @@ jobs:
           fi
 
       - name: Create release branch with Dockerfiles
+        env:
+          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           branch="${{ steps.config.outputs.release_branch }}"
           git checkout -B "${branch}" "upstream/${branch}"
@@ -61,6 +59,8 @@ jobs:
           git show origin/main:bees4ever/docker-templates/.gitignore > bees4ever/docker/.gitignore
           git add bees4ever/docker/
           git commit -m "bees4ever: add noble Python Dockerfiles"
+          git show origin/main:bees4ever/configure-git-push.sh > /tmp/configure-git-push.sh
+          bash /tmp/configure-git-push.sh
           if [[ "${{ inputs.force }}" == "true" ]]; then
             git push --force origin "${branch}"
           else
