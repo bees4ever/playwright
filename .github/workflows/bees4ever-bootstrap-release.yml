@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   bootstrap:
@@ -25,6 +24,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Configure git push token
+        env:
+          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash bees4ever/configure-git-push.sh
 
       - name: Read config
         id: config

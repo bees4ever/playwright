@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
-      workflows: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,6 +29,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Configure git push token
+        env:
+          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash bees4ever/configure-git-push.sh
 
       - name: Merge upstream main
         run: |
@@ -47,7 +52,6 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
-      workflows: write
     outputs:
       sync_ok: ${{ steps.merge.outputs.sync_ok }}
       updated: ${{ steps.merge.outputs.updated }}
@@ -62,6 +66,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Configure git push token
+        env:
+          BEES4EVER_GITHUB_TOKEN: ${{ secrets.BEES4EVER_GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash bees4ever/configure-git-push.sh
 
       - name: Read config
         id: config
