@@ -1,0 +1,61 @@
+name: bees4ever bootstrap release
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Replace an existing release branch (destructive)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    name: Bootstrap release branch
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Read config
+        id: config
+        run: |
+          release_branch="$(sed -n 's/^release_branch: *//p' bees4ever/config.yml | tr -d ' \r')"
+          echo "release_branch=${release_branch}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch upstream release branch
+        run: |
+          git remote add upstream https://github.com/microsoft/playwright.git
+          git fetch upstream "${{ steps.config.outputs.release_branch }}"
+
+      - name: Ensure release branch is absent
+        if: inputs.force != true
+        run: |
+          if git ls-remote --heads origin "${{ steps.config.outputs.release_branch }}" | grep -q .; then
+            echo "Release branch already exists on origin. Re-run with force=true to replace it."
+            exit 1
+          fi
+
+      - name: Create release branch with Dockerfiles
+        run: |
+          branch="${{ steps.config.outputs.release_branch }}"
+          git checkout -B "${branch}" "upstream/${branch}"
+          mkdir -p bees4ever/docker
+          cp bees4ever/docker-templates/Dockerfile.noble-py3.13 bees4ever/docker/
+          cp bees4ever/docker-templates/Dockerfile.noble-py3.14 bees4ever/docker/
+          cp bees4ever/docker-templates/.gitignore bees4ever/docker/
+          git add bees4ever/docker/
+          git commit -m "bees4ever: add noble Python Dockerfiles"
+          if [[ "${{ inputs.force }}" == "true" ]]; then
+            git push --force origin "${branch}"
+          else
+            git push origin "${branch}"
+          fi

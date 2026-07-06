@@ -1,0 +1,3 @@
+# bees4ever fork configuration (maintained on main).
+release_branch: release-1.61
+registry: ghcr.io/bees4ever/playwright
