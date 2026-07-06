@@ -49,9 +49,10 @@ jobs:
           branch="${{ steps.config.outputs.release_branch }}"
           git checkout -B "${branch}" "upstream/${branch}"
           mkdir -p bees4ever/docker
-          cp bees4ever/docker-templates/Dockerfile.noble-py3.13 bees4ever/docker/
-          cp bees4ever/docker-templates/Dockerfile.noble-py3.14 bees4ever/docker/
-          cp bees4ever/docker-templates/.gitignore bees4ever/docker/
+          git fetch origin main
+          git show origin/main:bees4ever/docker-templates/Dockerfile.noble-py3.13 > bees4ever/docker/Dockerfile.noble-py3.13
+          git show origin/main:bees4ever/docker-templates/Dockerfile.noble-py3.14 > bees4ever/docker/Dockerfile.noble-py3.14
+          git show origin/main:bees4ever/docker-templates/.gitignore > bees4ever/docker/.gitignore
           git add bees4ever/docker/
           git commit -m "bees4ever: add noble Python Dockerfiles"
           if [[ "${{ inputs.force }}" == "true" ]]; then
