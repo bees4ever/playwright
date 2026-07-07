@@ -110,17 +110,34 @@ jobs:
           fi
 
   build-docker:
-    name: Build and publish Docker images
+    name: Build ${{ matrix.variant }} (${{ matrix.arch }})
     needs: sync-release
     if: >-
       (needs.sync-release.outputs.sync_ok == 'true' &&
        needs.sync-release.outputs.updated == 'true') ||
       (needs.sync-release.outputs.sync_ok == 'true' &&
        inputs.force_build == true)
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: py3.13
+            arch: amd64
+            runner: ubuntu-22.04
+          - variant: py3.13
+            arch: arm64
+            runner: ubuntu-22.04-arm
+          - variant: py3.14
+            arch: amd64
+            runner: ubuntu-22.04
+          - variant: py3.14
+            arch: arm64
+            runner: ubuntu-22.04-arm
     permissions:
       contents: read
       packages: write
+      actions: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -130,9 +147,12 @@ jobs:
       - name: Install bees4ever tooling from main
         run: |
           git fetch origin main
-          mkdir -p bees4ever
+          mkdir -p bees4ever/docker
           git show origin/main:bees4ever/config.yml > bees4ever/config.yml
           git show origin/main:bees4ever/build.sh > bees4ever/build.sh
+          git show origin/main:bees4ever/docker-templates/Dockerfile.noble-py3.13 > bees4ever/docker/Dockerfile.noble-py3.13
+          git show origin/main:bees4ever/docker-templates/Dockerfile.noble-py3.14 > bees4ever/docker/Dockerfile.noble-py3.14
+          git show origin/main:bees4ever/docker-templates/.gitignore > bees4ever/docker/.gitignore
           chmod +x bees4ever/build.sh
 
       - uses: actions/setup-node@v6
@@ -144,11 +164,6 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: arm64
-
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
@@ -158,8 +173,45 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push py3.13
-        run: ./bees4ever/build.sh py3.13 --push
+      - name: Build and push
+        run: ./bees4ever/build.sh ${{ matrix.variant }} --push --${{ matrix.arch }}
 
-      - name: Build and push py3.14
-        run: ./bees4ever/build.sh py3.14 --push
+  publish-manifest:
+    name: Publish multi-arch manifests
+    needs: [sync-release, build-docker]
+    if: >-
+      (needs.sync-release.outputs.sync_ok == 'true' &&
+       needs.sync-release.outputs.updated == 'true') ||
+      (needs.sync-release.outputs.sync_ok == 'true' &&
+       inputs.force_build == true)
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.sync-release.outputs.release_branch }}
+          fetch-depth: 0
+
+      - name: Install bees4ever tooling from main
+        run: |
+          git fetch origin main
+          mkdir -p bees4ever
+          git show origin/main:bees4ever/config.yml > bees4ever/config.yml
+          git show origin/main:bees4ever/publish-manifest.sh > bees4ever/publish-manifest.sh
+          chmod +x bees4ever/publish-manifest.sh
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish py3.13 manifest
+        run: ./bees4ever/publish-manifest.sh py3.13
+
+      - name: Publish py3.14 manifest
+        run: ./bees4ever/publish-manifest.sh py3.14

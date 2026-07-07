@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libncurses5-
     wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar -xzf Python-${PYTHON_VERSION}.tgz && \
     cd Python-${PYTHON_VERSION} && \
-    ./configure --with-lto --enable-shared --enable-optimizations && \
+    ./configure --enable-shared && \
     make -j$(nproc) && \
     make altinstall && \
     ldconfig && \
