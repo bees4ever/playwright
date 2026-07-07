@@ -61,6 +61,8 @@ export BUILDKIT_PROGRESS=plain
 echo "Building ${IMAGE} (${PLATFORM}, ${PUSH_OR_LOAD})"
 docker buildx build \
   --platform "${PLATFORM}" \
+  --provenance=false \
+  --sbom=false \
   --cache-from "type=gha,scope=${VARIANT}-${ARCH}" \
   --cache-to "type=gha,mode=max,scope=${VARIANT}-${ARCH}" \
   -f "$DOCKERFILE" \
