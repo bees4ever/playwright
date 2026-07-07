@@ -6,6 +6,23 @@
 
 Playwright is a framework for web automation and testing. It drives Chromium, Firefox, and WebKit with a single API — in your tests, in your scripts, and as a tool for AI agents.
 
+## bees4ever fork
+
+This repository is a **fork of [microsoft/playwright](https://github.com/microsoft/playwright)**. It is **not** maintained to add new Playwright features or change browser automation behavior.
+
+The goal is **multi-build Docker publishing**: upstream Playwright ships noble-based images with a single Python environment. This fork builds the same Playwright release on Ubuntu Noble with **additional Python versions**, so you can pick the runtime that matches your project.
+
+Images are published to GHCR:
+
+```bash
+docker pull ghcr.io/bees4ever/playwright:noble-v1.61.1-py3.13
+docker pull ghcr.io/bees4ever/playwright:noble-v1.61.1-py3.14
+```
+
+Tags follow `noble-v{playwright-version}-py{major.minor}` (for example `noble-v1.61.1-py3.13`). Each image includes Node.js, pre-installed browsers, and the pinned Python version — the same contract as upstream Playwright Docker images, plus Python.
+
+Fork-specific automation and Dockerfiles live under [`bees4ever/`](bees4ever/). Upstream code is synced daily from `microsoft/playwright`; customizations stay in that directory and on the active `release-*` branch.
+
 ## Get Started
 
 Choose the path that fits your workflow:
