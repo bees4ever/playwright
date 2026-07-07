@@ -203,6 +203,10 @@ jobs:
           git show origin/main:bees4ever/publish-manifest.sh > bees4ever/publish-manifest.sh
           chmod +x bees4ever/publish-manifest.sh
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
