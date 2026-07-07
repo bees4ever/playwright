@@ -25,7 +25,8 @@ RUN apt-get update && \
 
 # === INSTALL Python from source ===
 
-RUN apt-get update && apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends build-essential zlib1g-dev libncurses5-dev libgdbm-dev \
         libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev \
         wget curl libbz2-dev liblzma-dev tk-dev && \
     wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
@@ -43,6 +44,10 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libncurses5-
     cd / && \
     rm -rf Python-${PYTHON_VERSION} Python-${PYTHON_VERSION}.tgz && \
     rm -f /usr/local/lib/python3.13/EXTERNALLY-MANAGED && \
+    apt-get purge -y --auto-remove build-essential linux-libc-dev gcc g++ dpkg-dev \
+        zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev \
+        libffi-dev libsqlite3-dev libbz2-dev liblzma-dev tk-dev wget && \
+    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 # === BAKE BROWSERS INTO IMAGE ===
@@ -73,3 +78,9 @@ RUN cd /ms-playwright-agent && \
     rm -rf /ms-playwright-agent && \
     rm -rf ~/.npm/ && \
     chmod -R 777 /ms-playwright/webkit-*
+
+# Remove build headers if reintroduced by dependencies; apply latest security updates.
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get purge -y linux-libc-dev 2>/dev/null || true && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
