@@ -158,3 +158,9 @@ jobs:
           path: |
             ${{ github.workspace }}/test-results/**
           if-no-files-found: ignore
+
+      - name: Upload parquet report
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/upload-parquet-report
+        with:
+          job_name: webview-simulator-${{ matrix.shard }}

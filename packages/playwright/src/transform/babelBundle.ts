@@ -41,6 +41,24 @@ function babelTransformOptions(isTypeScript: boolean, isModule: boolean, plugins
 
   if (isTypeScript) {
     plugins.push(
+        // Strip "declare" class fields before these plugins run:
+        // - plugin-proposal-decorators
+        // - plugin-transform-class-properties
+        // - plugin-transform-private-methods
+        // See https://github.com/microsoft/playwright/issues/38586
+        [
+          (): PluginObj => ({
+            name: 'strip-declare-class-fields',
+            visitor: {
+              Class(path) {
+                for (const member of path.get('body.body')) {
+                  if (member.isClassProperty() && member.node.declare)
+                    member.remove();
+                }
+              }
+            }
+          })
+        ],
         [require('@babel/plugin-proposal-decorators'), { version: '2023-05' }],
         [require('@babel/plugin-transform-class-properties')],
         [require('@babel/plugin-transform-class-static-block')],
