@@ -190,6 +190,7 @@ export class Context {
       await this.newTab();
     if (crashed)
       this._currentTab!.logErrorMessage('Page crashed and was reset to about:blank.');
+    await this._currentTab!.waitForInitialized();
     return this._currentTab!;
   }
 
@@ -236,8 +237,9 @@ export class Context {
     const suffix = this._video.fileNames.length ? `-${this._video.fileNames.length}` : '';
     let fileName = this._video.fileName;
     if (fileName && suffix) {
+      const dir = path.dirname(fileName);
       const ext = path.extname(fileName);
-      fileName = path.basename(fileName, ext) + suffix + ext;
+      fileName = path.join(dir, path.basename(fileName, ext) + suffix + ext);
     }
     this._video.fileNames.push(fileName);
     await page.screencast.start({ path: fileName, ...this._video.params });
