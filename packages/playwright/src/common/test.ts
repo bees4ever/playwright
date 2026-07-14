@@ -58,7 +58,7 @@ export class Suite extends Base {
   _parallelMode: 'none' | 'default' | 'serial' | 'parallel' = 'none';
   _fullProject: FullProjectInternal | undefined;
   _fileId: string | undefined;
-  _preprocessing = false;
+  _preprocessMode: 'editable' | 'readonly' | undefined = undefined;
   readonly _type: 'root' | 'project' | 'file' | 'describe';
 
   skip: (reason?: string) => void;
@@ -270,22 +270,28 @@ export class Suite extends Base {
   }
 
   private _modifier(type: 'skip' | 'fixme' | 'fail', location: Location, reason: string | undefined): void {
-    if (!this._rootSuite()._preprocessing)
+    const mode = this._resolvePreprocessMode();
+    if (!mode)
       throw new Error(`Suite.${type}() can only be called from Reporter.preprocessSuite().`);
+    if (mode === 'readonly')
+      throw new Error(`Suite.${type}() cannot be called on a setup or teardown project; these always run in full.`);
     for (const test of this.allTests())
       test._applyPlanAnnotation({ type, description: reason, location });
   }
 
   exclude(): void {
-    if (!this._rootSuite()._preprocessing)
+    const mode = this._resolvePreprocessMode();
+    if (!mode)
       throw new Error(`Suite.exclude() can only be called from Reporter.preprocessSuite().`);
     if (!this.parent)
       throw new Error(`Suite.exclude() cannot be called on the root suite.`);
+    if (mode === 'readonly')
+      throw new Error(`Suite.exclude() cannot be called on a setup or teardown project; these always run in full.`);
     this.parent._detach(this);
   }
 
-  _rootSuite(): Suite {
-    return this.parent?._rootSuite() ?? this;
+  _resolvePreprocessMode(): 'editable' | 'readonly' | undefined {
+    return this._preprocessMode ?? this.parent?._resolvePreprocessMode();
   }
 }
 
@@ -353,8 +359,11 @@ export class TestCase extends Base implements reporterTypes.TestCase {
   }
 
   private _modifier(type: 'skip' | 'fixme' | 'fail', location: Location, reason: string | undefined): void {
-    if (!this._rootSuite()._preprocessing)
+    const mode = this.parent._resolvePreprocessMode();
+    if (!mode)
       throw new Error(`TestCase.${type}() can only be called from Reporter.preprocessSuite().`);
+    if (mode === 'readonly')
+      throw new Error(`TestCase.${type}() cannot be called on a setup or teardown project test; these always run in full.`);
     this._applyPlanAnnotation({ type, description: reason, location });
   }
 
@@ -368,13 +377,12 @@ export class TestCase extends Base implements reporterTypes.TestCase {
   }
 
   exclude(): void {
-    if (!this._rootSuite()._preprocessing)
+    const mode = this.parent._resolvePreprocessMode();
+    if (!mode)
       throw new Error(`TestCase.exclude() can only be called from Reporter.preprocessSuite().`);
+    if (mode === 'readonly')
+      throw new Error(`TestCase.exclude() cannot be called on a setup or teardown project test; these always run in full.`);
     this.parent._detach(this);
-  }
-
-  _rootSuite(): Suite {
-    return this.parent._rootSuite();
   }
 
   _serialize(): any {

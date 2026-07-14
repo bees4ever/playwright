@@ -392,15 +392,40 @@ test('multiple reporters declaring implementsSharding throws', async ({ runInlin
   expect(result.outputLines.join('\n')).toContain(`Multiple reporters declare 'implementsSharding'`);
 });
 
-test('plan.suite contains only top-level projects, not dependency/setup projects', async ({ runInlineTest }) => {
+test('plan.suite exposes setup/teardown dependency projects but they are read-only', async ({ runInlineTest }) => {
   const result = await runInlineTest({
     'reporter.ts': `
       class Reporter {
         async preprocessSuite(config, suite) {
-          // The suite only exposes top-level projects, so a reporter has no handle on
-          // setup/dependency project tests and therefore cannot exclude them.
           console.log('%% plan projects: ' + suite.suites.map(s => s.title).join(','));
           console.log('%% plan tests: ' + suite.allTests().map(t => t.title).join(','));
+          this.preprocessedTests = new Set(suite.allTests());
+          const setupTest = suite.allTests().find(t => t.title === 'setup-test');
+          for (const method of ['skip', 'fixme', 'fail', 'exclude']) {
+            try {
+              setupTest[method]();
+              console.log('%% dep-' + method + ': no-throw');
+            } catch (e) {
+              console.log('%% dep-' + method + ': ' + e.message);
+            }
+          }
+          const setupProject = suite.suites.find(s => s.title === 'setup');
+          try {
+            setupProject.exclude();
+            console.log('%% dep-suite-exclude: no-throw');
+          } catch (e) {
+            console.log('%% dep-suite-exclude: ' + e.message);
+          }
+        }
+        onBegin(config, suite) {
+          console.log('%% same test objects: ' + suite.allTests().every(test => this.preprocessedTests.has(test)));
+          const setupTest = suite.allTests().find(t => t.title === 'setup-test');
+          try {
+            setupTest.skip();
+            console.log('%% dep-after-preprocess: no-throw');
+          } catch (e) {
+            console.log('%% dep-after-preprocess: ' + e.message);
+          }
         }
         onTestEnd(test, result) {
           console.log('%% ran ' + test.parent.project().name + '/' + test.title);
@@ -412,7 +437,8 @@ test('plan.suite contains only top-level projects, not dependency/setup projects
       module.exports = {
         reporter: './reporter.ts',
         projects: [
-          { name: 'setup', testMatch: /a\\.setup\\.ts/ },
+          { name: 'setup', testMatch: /a\\.setup\\.ts/, teardown: 'teardown' },
+          { name: 'teardown', testMatch: /a\\.teardown\\.ts/ },
           { name: 'main', testMatch: /a\\.test\\.ts/, dependencies: ['setup'] },
         ],
       };
@@ -421,6 +447,10 @@ test('plan.suite contains only top-level projects, not dependency/setup projects
       import { test } from '@playwright/test';
       test('setup-test', async () => {});
     `,
+    'a.teardown.ts': `
+      import { test } from '@playwright/test';
+      test('teardown-test', async () => {});
+    `,
     'a.test.ts': `
       import { test } from '@playwright/test';
       test('main-test', async () => {});
@@ -428,11 +458,65 @@ test('plan.suite contains only top-level projects, not dependency/setup projects
   }, { reporter: '', workers: 1 }, undefined, { additionalArgs: ['--project=main'] });
 
   expect(result.exitCode).toBe(0);
-  // plan only sees the top-level 'main' project; the 'setup' dependency is prepended afterwards.
-  expect(result.outputLines).toContain('plan projects: main');
-  // 'setup-test' is absent from the plan suite, proving setup/dependency tests are not exposed.
-  expect(result.outputLines).toContain('plan tests: main-test');
-  // Both the dependency and the main project still run.
-  expect(result.outputLines).toContain('ran setup/setup-test');
-  expect(result.outputLines).toContain('ran main/main-test');
+  expect(result.outputLines).toEqual([
+    'plan projects: teardown,setup,main',
+    'plan tests: teardown-test,setup-test,main-test',
+    'dep-skip: TestCase.skip() cannot be called on a setup or teardown project test; these always run in full.',
+    'dep-fixme: TestCase.fixme() cannot be called on a setup or teardown project test; these always run in full.',
+    'dep-fail: TestCase.fail() cannot be called on a setup or teardown project test; these always run in full.',
+    'dep-exclude: TestCase.exclude() cannot be called on a setup or teardown project test; these always run in full.',
+    'dep-suite-exclude: Suite.exclude() cannot be called on a setup or teardown project; these always run in full.',
+    'same test objects: true',
+    'dep-after-preprocess: TestCase.skip() can only be called from Reporter.preprocessSuite().',
+    'ran setup/setup-test',
+    'ran main/main-test',
+    'ran teardown/teardown-test',
+  ]);
+});
+
+test('plan.suite temporarily exposes dependencies without changing final project selection', async ({ runInlineTest }) => {
+  const result = await runInlineTest({
+    'reporter.ts': `
+      class Reporter {
+        async preprocessSuite(config, suite) {
+          console.log('%% plan projects: ' + suite.suites.map(suite => suite.title).join(','));
+          suite.suites.find(suite => suite.title === 'main').exclude();
+        }
+        onTestEnd(test, result) {
+          console.log('%% ran ' + test.parent.project().name + '/' + test.title);
+        }
+      }
+      module.exports = Reporter;
+    `,
+    'playwright.config.ts': `
+      module.exports = {
+        reporter: './reporter.ts',
+        projects: [
+          { name: 'setup', testMatch: /setup\\.spec\\.ts/ },
+          { name: 'main', testMatch: /main\\.spec\\.ts/, dependencies: ['setup'] },
+          { name: 'keep', testMatch: /keep\\.spec\\.ts/ },
+        ],
+      };
+    `,
+    'setup.spec.ts': `
+      import { test, expect } from '@playwright/test';
+      test('setup-test', async () => {
+        expect(1).toBe(2);
+      });
+    `,
+    'main.spec.ts': `
+      import { test } from '@playwright/test';
+      test('main-test', async () => {});
+    `,
+    'keep.spec.ts': `
+      import { test } from '@playwright/test';
+      test('keep-test', async () => {});
+    `,
+  }, { reporter: '', workers: 1 }, undefined, { additionalArgs: ['setup.spec.ts', 'main.spec.ts', 'keep.spec.ts'] });
+
+  expect(result.exitCode).toBe(0);
+  expect(result.outputLines).toEqual([
+    'plan projects: setup,main,keep',
+    'ran keep/keep-test',
+  ]);
 });

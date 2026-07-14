@@ -55,12 +55,7 @@ export class InternalReporter implements ReporterV2 {
   }
 
   async preprocessSuite(config: FullConfig, suite: testNs.Suite) {
-    suite._preprocessing = true;
-    try {
-      return await this._reporter.preprocessSuite?.(config, suite);
-    } finally {
-      suite._preprocessing = false;
-    }
+    return await this._reporter.preprocessSuite?.(config, suite);
   }
 
   onBegin(suite: testNs.Suite) {
