@@ -32,6 +32,7 @@ export type HtmlReporterOptions = {
   noSnippets?: boolean;
   noCopyPrompt?: boolean;
   doNotInlineAssets?: boolean;
+  mergeFiles?: boolean;
 };
 
 export type ReporterDescription = Readonly<
@@ -1644,8 +1645,9 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    * Controls when failed tests are retried. Defaults to `'immediate'`.
    * - `'immediate'` - A failed test is retried as soon as a worker is available, interleaved with the rest of the
    *   run. This is the default.
-   * - `'deferred'` - Retries are run only after all tests have had their first attempt, in parallel up to the
-   *   configured number of [workers](#test-config-workers).
+   * - `'isolated'` - Retries are run at the end, after all other tests have finished, one by one in a single worker.
+   *   This minimizes the interference between retried tests and the rest of the suite, at the expense of the total
+   *   run time.
    *
    * Learn more about [test retries](https://playwright.dev/docs/test-retries#retries).
    *
@@ -1657,12 +1659,12 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    *
    * export default defineConfig({
    *   retries: 2,
-   *   retryStrategy: 'deferred',
+   *   retryStrategy: 'isolated',
    * });
    * ```
    *
    */
-  retryStrategy?: "immediate"|"deferred";
+  retryStrategy?: "immediate"|"isolated";
 
   /**
    * Shard tests and execute only the selected shard. Specify in the one-based form like `{ total: 5, current: 2 }`.
@@ -9619,6 +9621,13 @@ interface LocatorAssertions {
     scale?: "css"|"device";
 
     /**
+     * An optional [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) that can cancel the
+     * assertion. Aborting the signal fails the assertion like a timeout: if the signal is aborted while the assertion is
+     * retrying, or is already aborted before the assertion starts, the assertion fails without retrying further.
+     */
+    signal?: AbortSignal;
+
+    /**
      * File name containing the stylesheet to apply while making the screenshot. This is where you can hide dynamic
      * elements, make elements invisible or change their properties to help you creating repeatable screenshots. This
      * stylesheet pierces the Shadow DOM and applies to the inner frames.
@@ -9713,6 +9722,13 @@ interface LocatorAssertions {
      * Defaults to `"css"`.
      */
     scale?: "css"|"device";
+
+    /**
+     * An optional [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) that can cancel the
+     * assertion. Aborting the signal fails the assertion like a timeout: if the signal is aborted while the assertion is
+     * retrying, or is already aborted before the assertion starts, the assertion fails without retrying further.
+     */
+    signal?: AbortSignal;
 
     /**
      * File name containing the stylesheet to apply while making the screenshot. This is where you can hide dynamic
@@ -10604,6 +10620,13 @@ export interface PageAssertionsToHaveScreenshotOptions {
    * Defaults to `"css"`.
    */
   scale?: "css"|"device";
+
+  /**
+   * An optional [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) that can cancel the
+   * assertion. Aborting the signal fails the assertion like a timeout: if the signal is aborted while the assertion is
+   * retrying, or is already aborted before the assertion starts, the assertion fails without retrying further.
+   */
+  signal?: AbortSignal;
 
   /**
    * File name containing the stylesheet to apply while making the screenshot. This is where you can hide dynamic

@@ -16,7 +16,6 @@
 
 import { rootTestType } from './testType';
 import { computeTestCaseOutcome } from '../isomorphic/teleReceiver';
-import { wrapFunctionWithLocation } from '../transform/transform';
 import type { FixturesWithLocation, FullProjectInternal } from './config';
 import type { FixturePool } from './fixtures';
 import type { TestTypeImpl } from './testType';
@@ -58,19 +57,11 @@ export class Suite extends Base {
   _parallelMode: 'none' | 'default' | 'serial' | 'parallel' = 'none';
   _fullProject: FullProjectInternal | undefined;
   _fileId: string | undefined;
-  _preprocessMode: 'editable' | 'readonly' | undefined = undefined;
   readonly _type: 'root' | 'project' | 'file' | 'describe';
-
-  skip: (reason?: string) => void;
-  fixme: (reason?: string) => void;
-  fail: (reason?: string) => void;
 
   constructor(title: string, type: 'root' | 'project' | 'file' | 'describe') {
     super(title);
     this._type = type;
-    this.skip = wrapFunctionWithLocation((location, reason?: string) => this._modifier('skip', location, reason));
-    this.fixme = wrapFunctionWithLocation((location, reason?: string) => this._modifier('fixme', location, reason));
-    this.fail = wrapFunctionWithLocation((location, reason?: string) => this._modifier('fail', location, reason));
   }
 
   get type(): 'root' | 'project' | 'file' | 'describe' {
@@ -269,30 +260,6 @@ export class Suite extends Base {
     return this._fullProject?.project || this.parent?.project();
   }
 
-  private _modifier(type: 'skip' | 'fixme' | 'fail', location: Location, reason: string | undefined): void {
-    const mode = this._resolvePreprocessMode();
-    if (!mode)
-      throw new Error(`Suite.${type}() can only be called from Reporter.preprocessSuite().`);
-    if (mode === 'readonly')
-      throw new Error(`Suite.${type}() cannot be called on a setup or teardown project; these always run in full.`);
-    for (const test of this.allTests())
-      test._applyPlanAnnotation({ type, description: reason, location });
-  }
-
-  exclude(): void {
-    const mode = this._resolvePreprocessMode();
-    if (!mode)
-      throw new Error(`Suite.exclude() can only be called from Reporter.preprocessSuite().`);
-    if (!this.parent)
-      throw new Error(`Suite.exclude() cannot be called on the root suite.`);
-    if (mode === 'readonly')
-      throw new Error(`Suite.exclude() cannot be called on a setup or teardown project; these always run in full.`);
-    this.parent._detach(this);
-  }
-
-  _resolvePreprocessMode(): 'editable' | 'readonly' | undefined {
-    return this._preprocessMode ?? this.parent?._resolvePreprocessMode();
-  }
 }
 
 export class TestCase extends Base implements reporterTypes.TestCase {
@@ -318,18 +285,11 @@ export class TestCase extends Base implements reporterTypes.TestCase {
   _tags: string[] = [];
   _planAnnotations: TestAnnotation[] = [];
 
-  skip: (reason?: string) => void;
-  fixme: (reason?: string) => void;
-  fail: (reason?: string) => void;
-
   constructor(title: string, fn: Function, testType: TestTypeImpl, location: Location) {
     super(title);
     this.fn = fn;
     this._testType = testType;
     this.location = location;
-    this.skip = wrapFunctionWithLocation((location, reason?: string) => this._modifier('skip', location, reason));
-    this.fixme = wrapFunctionWithLocation((location, reason?: string) => this._modifier('fixme', location, reason));
-    this.fail = wrapFunctionWithLocation((location, reason?: string) => this._modifier('fail', location, reason));
   }
 
   titlePath(): string[] {
@@ -358,15 +318,6 @@ export class TestCase extends Base implements reporterTypes.TestCase {
     ];
   }
 
-  private _modifier(type: 'skip' | 'fixme' | 'fail', location: Location, reason: string | undefined): void {
-    const mode = this.parent._resolvePreprocessMode();
-    if (!mode)
-      throw new Error(`TestCase.${type}() can only be called from Reporter.preprocessSuite().`);
-    if (mode === 'readonly')
-      throw new Error(`TestCase.${type}() cannot be called on a setup or teardown project test; these always run in full.`);
-    this._applyPlanAnnotation({ type, description: reason, location });
-  }
-
   _applyPlanAnnotation(annotation: TestAnnotation): void {
     this.annotations.push(annotation);
     this._planAnnotations.push(annotation);
@@ -374,15 +325,6 @@ export class TestCase extends Base implements reporterTypes.TestCase {
       this.expectedStatus = 'skipped';
     else if (annotation.type === 'fail' && this.expectedStatus !== 'skipped')
       this.expectedStatus = 'failed';
-  }
-
-  exclude(): void {
-    const mode = this.parent._resolvePreprocessMode();
-    if (!mode)
-      throw new Error(`TestCase.exclude() can only be called from Reporter.preprocessSuite().`);
-    if (mode === 'readonly')
-      throw new Error(`TestCase.exclude() cannot be called on a setup or teardown project test; these always run in full.`);
-    this.parent._detach(this);
   }
 
   _serialize(): any {

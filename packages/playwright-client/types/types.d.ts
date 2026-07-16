@@ -3081,13 +3081,6 @@ export interface Page {
    */
   getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
-     * An attribute that is usually set by `aria-busy`.
-     *
-     * Learn more about [`aria-busy`](https://www.w3.org/TR/wai-aria-1.2/#aria-busy).
-     */
-    busy?: boolean;
-
-    /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls.
      *
      * Learn more about [`aria-checked`](https://www.w3.org/TR/wai-aria-1.2/#aria-checked).
@@ -7379,13 +7372,6 @@ export interface Frame {
    * @param options
    */
   getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
-    /**
-     * An attribute that is usually set by `aria-busy`.
-     *
-     * Learn more about [`aria-busy`](https://www.w3.org/TR/wai-aria-1.2/#aria-busy).
-     */
-    busy?: boolean;
-
     /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls.
      *
@@ -15263,13 +15249,6 @@ export interface Locator {
    */
   getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
-     * An attribute that is usually set by `aria-busy`.
-     *
-     * Learn more about [`aria-busy`](https://www.w3.org/TR/wai-aria-1.2/#aria-busy).
-     */
-    busy?: boolean;
-
-    /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls.
      *
      * Learn more about [`aria-checked`](https://www.w3.org/TR/wai-aria-1.2/#aria-checked).
@@ -19930,6 +19909,68 @@ export interface APIResponse {
   text(): Promise<string>;
 
   /**
+   * Returns resource timing information for given response. For redirected requests, returns the information for the
+   * last request in the redirect chain. When the response is served [from the HAR file](https://playwright.dev/docs/mock#replaying-from-har),
+   * timing information is not available and all the values are -1. Find more information at
+   * [Resource Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming).
+   */
+  timing(): {
+    /**
+     * Request start time in milliseconds elapsed since January 1, 1970 00:00:00 UTC
+     */
+    startTime: number;
+
+    /**
+     * Time immediately before the client starts the domain name lookup for the resource. The value is given in
+     * milliseconds relative to `startTime`, -1 if not available.
+     */
+    domainLookupStart: number;
+
+    /**
+     * Time immediately after the client ends the domain name lookup for the resource. The value is given in milliseconds
+     * relative to `startTime`, -1 if not available.
+     */
+    domainLookupEnd: number;
+
+    /**
+     * Time immediately before the client starts establishing the connection to the server to retrieve the resource. The
+     * value is given in milliseconds relative to `startTime`, -1 if not available.
+     */
+    connectStart: number;
+
+    /**
+     * Time immediately before the client starts the handshake process to secure the current connection. The value is
+     * given in milliseconds relative to `startTime`, -1 if not available.
+     */
+    secureConnectionStart: number;
+
+    /**
+     * Time immediately after the client establishes the connection to the server to retrieve the resource. The value is
+     * given in milliseconds relative to `startTime`, -1 if not available.
+     */
+    connectEnd: number;
+
+    /**
+     * Time immediately before the client starts requesting the resource from the server, cache, or local resource. The
+     * value is given in milliseconds relative to `startTime`, -1 if not available.
+     */
+    requestStart: number;
+
+    /**
+     * Time immediately after the client receives the first byte of the response from the server, cache, or local
+     * resource. The value is given in milliseconds relative to `startTime`, -1 if not available.
+     */
+    responseStart: number;
+
+    /**
+     * Time immediately after the client receives the last byte of the resource or immediately before the transport
+     * connection is closed, whichever comes first. The value is given in milliseconds relative to `startTime`, -1 if not
+     * available.
+     */
+    responseEnd: number;
+  };
+
+  /**
    * Contains the URL of the response.
    */
   url(): string;
@@ -21078,13 +21119,6 @@ export interface FrameLocator {
    */
   getByRole(role: "alert"|"alertdialog"|"application"|"article"|"banner"|"blockquote"|"button"|"caption"|"cell"|"checkbox"|"code"|"columnheader"|"combobox"|"complementary"|"contentinfo"|"definition"|"deletion"|"dialog"|"directory"|"document"|"emphasis"|"feed"|"figure"|"form"|"generic"|"grid"|"gridcell"|"group"|"heading"|"img"|"insertion"|"link"|"list"|"listbox"|"listitem"|"log"|"main"|"marquee"|"math"|"meter"|"menu"|"menubar"|"menuitem"|"menuitemcheckbox"|"menuitemradio"|"navigation"|"none"|"note"|"option"|"paragraph"|"presentation"|"progressbar"|"radio"|"radiogroup"|"region"|"row"|"rowgroup"|"rowheader"|"scrollbar"|"search"|"searchbox"|"separator"|"slider"|"spinbutton"|"status"|"strong"|"subscript"|"superscript"|"switch"|"tab"|"table"|"tablist"|"tabpanel"|"term"|"textbox"|"time"|"timer"|"toolbar"|"tooltip"|"tree"|"treegrid"|"treeitem", options?: {
     /**
-     * An attribute that is usually set by `aria-busy`.
-     *
-     * Learn more about [`aria-busy`](https://www.w3.org/TR/wai-aria-1.2/#aria-busy).
-     */
-    busy?: boolean;
-
-    /**
      * An attribute that is usually set by `aria-checked` or native `<input type=checkbox>` controls.
      *
      * Learn more about [`aria-checked`](https://www.w3.org/TR/wai-aria-1.2/#aria-checked).
@@ -22019,49 +22053,49 @@ export interface Request {
     startTime: number;
 
     /**
-     * Time immediately before the browser starts the domain name lookup for the resource. The value is given in
+     * Time immediately before the client starts the domain name lookup for the resource. The value is given in
      * milliseconds relative to `startTime`, -1 if not available.
      */
     domainLookupStart: number;
 
     /**
-     * Time immediately after the browser starts the domain name lookup for the resource. The value is given in
-     * milliseconds relative to `startTime`, -1 if not available.
+     * Time immediately after the client ends the domain name lookup for the resource. The value is given in milliseconds
+     * relative to `startTime`, -1 if not available.
      */
     domainLookupEnd: number;
 
     /**
-     * Time immediately before the user agent starts establishing the connection to the server to retrieve the resource.
-     * The value is given in milliseconds relative to `startTime`, -1 if not available.
+     * Time immediately before the client starts establishing the connection to the server to retrieve the resource. The
+     * value is given in milliseconds relative to `startTime`, -1 if not available.
      */
     connectStart: number;
 
     /**
-     * Time immediately before the browser starts the handshake process to secure the current connection. The value is
+     * Time immediately before the client starts the handshake process to secure the current connection. The value is
      * given in milliseconds relative to `startTime`, -1 if not available.
      */
     secureConnectionStart: number;
 
     /**
-     * Time immediately before the user agent starts establishing the connection to the server to retrieve the resource.
-     * The value is given in milliseconds relative to `startTime`, -1 if not available.
+     * Time immediately after the client establishes the connection to the server to retrieve the resource. The value is
+     * given in milliseconds relative to `startTime`, -1 if not available.
      */
     connectEnd: number;
 
     /**
-     * Time immediately before the browser starts requesting the resource from the server, cache, or local resource. The
+     * Time immediately before the client starts requesting the resource from the server, cache, or local resource. The
      * value is given in milliseconds relative to `startTime`, -1 if not available.
      */
     requestStart: number;
 
     /**
-     * Time immediately after the browser receives the first byte of the response from the server, cache, or local
+     * Time immediately after the client receives the first byte of the response from the server, cache, or local
      * resource. The value is given in milliseconds relative to `startTime`, -1 if not available.
      */
     responseStart: number;
 
     /**
-     * Time immediately after the browser receives the last byte of the resource or immediately before the transport
+     * Time immediately after the client receives the last byte of the resource or immediately before the transport
      * connection is closed, whichever comes first. The value is given in milliseconds relative to `startTime`, -1 if not
      * available.
      */
