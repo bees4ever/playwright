@@ -137,7 +137,7 @@ export class Request extends ChannelOwner<channels.RequestChannel> implements ap
   }
 
   postData(): string | null {
-    return (this._fallbackOverrides.postDataBuffer || this._initializer.postData)?.toString('utf-8') || null;
+    return (this._fallbackOverrides.postDataBuffer ?? this._initializer.postData)?.toString('utf-8') ?? null;
   }
 
   postDataBuffer(): Buffer | null {
