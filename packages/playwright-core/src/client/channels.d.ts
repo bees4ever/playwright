@@ -1273,8 +1273,6 @@ export interface BrowserContextChannel extends BrowserContextEventTarget, Channe
   setGeolocation(params: BrowserContextSetGeolocationParams, options: TimeoutOptions): Promise<BrowserContextSetGeolocationResult>;
   setHTTPCredentials(params: BrowserContextSetHTTPCredentialsParams, options: TimeoutOptions): Promise<BrowserContextSetHTTPCredentialsResult>;
   setNetworkInterceptionPatterns(params: BrowserContextSetNetworkInterceptionPatternsParams, options: TimeoutOptions): Promise<BrowserContextSetNetworkInterceptionPatternsResult>;
-  routeAPIRequestsFromHar(params: BrowserContextRouteAPIRequestsFromHarParams, options: TimeoutOptions): Promise<BrowserContextRouteAPIRequestsFromHarResult>;
-  unrouteAPIRequestsFromHar(params: BrowserContextUnrouteAPIRequestsFromHarParams, options: TimeoutOptions): Promise<BrowserContextUnrouteAPIRequestsFromHarResult>;
   setWebSocketInterceptionPatterns(params: BrowserContextSetWebSocketInterceptionPatternsParams, options: TimeoutOptions): Promise<BrowserContextSetWebSocketInterceptionPatternsResult>;
   setOffline(params: BrowserContextSetOfflineParams, options: TimeoutOptions): Promise<BrowserContextSetOfflineResult>;
   storageState(params: BrowserContextStorageStateParams, options: TimeoutOptions): Promise<BrowserContextStorageStateResult>;
@@ -1509,28 +1507,6 @@ export type BrowserContextSetNetworkInterceptionPatternsOptions = {
 
 };
 export type BrowserContextSetNetworkInterceptionPatternsResult = void;
-export type BrowserContextRouteAPIRequestsFromHarParams = {
-  harId: string,
-  urlGlob?: string,
-  urlRegexSource?: string,
-  urlRegexFlags?: string,
-  notFound: 'abort' | 'fallback',
-};
-export type BrowserContextRouteAPIRequestsFromHarOptions = {
-  urlGlob?: string,
-  urlRegexSource?: string,
-  urlRegexFlags?: string,
-};
-export type BrowserContextRouteAPIRequestsFromHarResult = {
-  registrationId: string,
-};
-export type BrowserContextUnrouteAPIRequestsFromHarParams = {
-  registrationId: string,
-};
-export type BrowserContextUnrouteAPIRequestsFromHarOptions = {
-
-};
-export type BrowserContextUnrouteAPIRequestsFromHarResult = void;
 export type BrowserContextSetWebSocketInterceptionPatternsParams = {
   patterns: {
     glob?: string,
@@ -5000,6 +4976,7 @@ export interface BindingCallEvents {
 export type DebuggerInitializer = {};
 export interface DebuggerEventTarget {
   on(event: 'pausedStateChanged', callback: (params: DebuggerPausedStateChangedEvent) => void): this;
+  on(event: 'apiCallsUpdated', callback: (params: DebuggerApiCallsUpdatedEvent) => void): this;
 }
 export interface DebuggerChannel extends DebuggerEventTarget, Channel {
   _type_Debugger: boolean;
@@ -5007,6 +4984,7 @@ export interface DebuggerChannel extends DebuggerEventTarget, Channel {
   resume(params: DebuggerResumeParams, options: TimeoutOptions): Promise<DebuggerResumeResult>;
   next(params: DebuggerNextParams, options: TimeoutOptions): Promise<DebuggerNextResult>;
   runTo(params: DebuggerRunToParams, options: TimeoutOptions): Promise<DebuggerRunToResult>;
+  enable(params: DebuggerEnableParams, options: TimeoutOptions): Promise<DebuggerEnableResult>;
 }
 export type DebuggerPausedStateChangedEvent = {
   pausedDetails?: {
@@ -5018,6 +4996,21 @@ export type DebuggerPausedStateChangedEvent = {
     title: string,
     stack?: string,
   },
+};
+export type DebuggerApiCallsUpdatedEvent = {
+  apiCalls: {
+    id: string,
+    title: string,
+    location?: {
+      file: string,
+      line?: number,
+      column?: number,
+    },
+    newLogEntries: string[],
+    actionPoint?: Point,
+    status: 'running' | 'success' | 'error',
+    error?: string,
+  }[],
 };
 export type DebuggerRequestPauseParams = {};
 export type DebuggerRequestPauseOptions = {};
@@ -5039,9 +5032,13 @@ export type DebuggerRunToOptions = {
 
 };
 export type DebuggerRunToResult = void;
+export type DebuggerEnableParams = {};
+export type DebuggerEnableOptions = {};
+export type DebuggerEnableResult = void;
 
 export interface DebuggerEvents {
   'pausedStateChanged': DebuggerPausedStateChangedEvent;
+  'apiCallsUpdated': DebuggerApiCallsUpdatedEvent;
 }
 
 // ----------- Dialog -----------

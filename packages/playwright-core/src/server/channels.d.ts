@@ -1274,8 +1274,6 @@ export interface BrowserContextChannel extends BrowserContextEventTarget, Channe
   setGeolocation(params: BrowserContextSetGeolocationParams, progress: Progress): Promise<BrowserContextSetGeolocationResult>;
   setHTTPCredentials(params: BrowserContextSetHTTPCredentialsParams, progress: Progress): Promise<BrowserContextSetHTTPCredentialsResult>;
   setNetworkInterceptionPatterns(params: BrowserContextSetNetworkInterceptionPatternsParams, progress: Progress): Promise<BrowserContextSetNetworkInterceptionPatternsResult>;
-  routeAPIRequestsFromHar(params: BrowserContextRouteAPIRequestsFromHarParams, progress: Progress): Promise<BrowserContextRouteAPIRequestsFromHarResult>;
-  unrouteAPIRequestsFromHar(params: BrowserContextUnrouteAPIRequestsFromHarParams, progress: Progress): Promise<BrowserContextUnrouteAPIRequestsFromHarResult>;
   setWebSocketInterceptionPatterns(params: BrowserContextSetWebSocketInterceptionPatternsParams, progress: Progress): Promise<BrowserContextSetWebSocketInterceptionPatternsResult>;
   setOffline(params: BrowserContextSetOfflineParams, progress: Progress): Promise<BrowserContextSetOfflineResult>;
   storageState(params: BrowserContextStorageStateParams, progress: Progress): Promise<BrowserContextStorageStateResult>;
@@ -1510,28 +1508,6 @@ export type BrowserContextSetNetworkInterceptionPatternsOptions = {
 
 };
 export type BrowserContextSetNetworkInterceptionPatternsResult = void;
-export type BrowserContextRouteAPIRequestsFromHarParams = {
-  harId: string,
-  urlGlob?: string,
-  urlRegexSource?: string,
-  urlRegexFlags?: string,
-  notFound: 'abort' | 'fallback',
-};
-export type BrowserContextRouteAPIRequestsFromHarOptions = {
-  urlGlob?: string,
-  urlRegexSource?: string,
-  urlRegexFlags?: string,
-};
-export type BrowserContextRouteAPIRequestsFromHarResult = {
-  registrationId: string,
-};
-export type BrowserContextUnrouteAPIRequestsFromHarParams = {
-  registrationId: string,
-};
-export type BrowserContextUnrouteAPIRequestsFromHarOptions = {
-
-};
-export type BrowserContextUnrouteAPIRequestsFromHarResult = void;
 export type BrowserContextSetWebSocketInterceptionPatternsParams = {
   patterns: {
     glob?: string,
@@ -5001,6 +4977,7 @@ export interface BindingCallEvents {
 export type DebuggerInitializer = {};
 export interface DebuggerEventTarget {
   _dispatchEvent(event: 'pausedStateChanged', params?: DebuggerPausedStateChangedEvent): void;
+  _dispatchEvent(event: 'apiCallsUpdated', params?: DebuggerApiCallsUpdatedEvent): void;
 }
 export interface DebuggerChannel extends DebuggerEventTarget, Channel {
   _type_Debugger: boolean;
@@ -5008,6 +4985,7 @@ export interface DebuggerChannel extends DebuggerEventTarget, Channel {
   resume(params: DebuggerResumeParams, progress: Progress): Promise<DebuggerResumeResult>;
   next(params: DebuggerNextParams, progress: Progress): Promise<DebuggerNextResult>;
   runTo(params: DebuggerRunToParams, progress: Progress): Promise<DebuggerRunToResult>;
+  enable(params: DebuggerEnableParams, progress: Progress): Promise<DebuggerEnableResult>;
 }
 export type DebuggerPausedStateChangedEvent = {
   pausedDetails?: {
@@ -5019,6 +4997,21 @@ export type DebuggerPausedStateChangedEvent = {
     title: string,
     stack?: string,
   },
+};
+export type DebuggerApiCallsUpdatedEvent = {
+  apiCalls: {
+    id: string,
+    title: string,
+    location?: {
+      file: string,
+      line?: number,
+      column?: number,
+    },
+    newLogEntries: string[],
+    actionPoint?: Point,
+    status: 'running' | 'success' | 'error',
+    error?: string,
+  }[],
 };
 export type DebuggerRequestPauseParams = {};
 export type DebuggerRequestPauseOptions = {};
@@ -5040,9 +5033,13 @@ export type DebuggerRunToOptions = {
 
 };
 export type DebuggerRunToResult = void;
+export type DebuggerEnableParams = {};
+export type DebuggerEnableOptions = {};
+export type DebuggerEnableResult = void;
 
 export interface DebuggerEvents {
   'pausedStateChanged': DebuggerPausedStateChangedEvent;
+  'apiCallsUpdated': DebuggerApiCallsUpdatedEvent;
 }
 
 // ----------- Dialog -----------
