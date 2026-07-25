@@ -19,8 +19,11 @@ import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions,
 export * from 'playwright-core';
 
 export type BlobReporterOptions = { outputDir?: string, fileName?: string };
-export type ListReporterOptions = { printSteps?: boolean, printFailuresInline?: boolean };
-export type JUnitReporterOptions = { outputFile?: string, stripANSIControlSequences?: boolean, includeProjectInTestName?: boolean, includeRetries?: boolean };
+export type DotReporterOptions = { omitTags?: boolean };
+export type LineReporterOptions = { omitTags?: boolean };
+export type ListReporterOptions = { printSteps?: boolean, printFailuresInline?: boolean, omitTags?: boolean };
+export type GitHubReporterOptions = { omitTags?: boolean };
+export type JUnitReporterOptions = { outputFile?: string, stripANSIControlSequences?: boolean, includeProjectInTestName?: boolean, includeRetries?: boolean, omitTags?: boolean };
 export type JsonReporterOptions = { outputFile?: string };
 export type HtmlReporterOptions = {
   outputFolder?: string;
@@ -37,10 +40,10 @@ export type HtmlReporterOptions = {
 
 export type ReporterDescription = Readonly<
   ['blob'] | ['blob', BlobReporterOptions] |
-  ['dot'] |
-  ['line'] |
+  ['dot'] | ['dot', DotReporterOptions] |
+  ['line'] | ['line', LineReporterOptions] |
   ['list'] | ['list', ListReporterOptions] |
-  ['github'] |
+  ['github'] | ['github', GitHubReporterOptions] |
   ['junit'] | ['junit', JUnitReporterOptions] |
   ['json'] | ['json', JsonReporterOptions] |
   ['html'] | ['html', HtmlReporterOptions] |
@@ -7446,6 +7449,9 @@ export interface PlaywrightTestOptions {
    * Credentials for [HTTP authentication](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication). If no
    * origin is specified, the username and password are sent to any servers upon unauthorized responses.
    *
+   * Pass an array to use different credentials for different origins. The first entry that matches the request origin
+   * is used, and entries with no origin match any request.
+   *
    * **Usage**
    *
    * ```js
@@ -7463,7 +7469,7 @@ export interface PlaywrightTestOptions {
    * ```
    *
    */
-  httpCredentials: HTTPCredentials | undefined;
+  httpCredentials: HTTPCredentials | HTTPCredentials[] | undefined;
   /**
    * Whether to ignore HTTPS errors when sending network requests. Defaults to `false`.
    *
