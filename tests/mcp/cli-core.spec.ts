@@ -146,6 +146,33 @@ test('uncheck', async ({ cli, server, mcpBrowser }) => {
   expect(inlineSnapshot).toContain(`- checkbox ${active}[ref=e2]`);
 });
 
+test('upload multiple files', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/42047' } }, async ({ cli, server }, testInfo) => {
+  server.setContent('/', `
+    <input type="file" multiple>
+    <div id="result"></div>
+    <script>
+      document.querySelector('input').addEventListener('change', event => {
+        document.getElementById('result').textContent = 'Received: ' + [...event.target.files].map(f => f.name).join(', ');
+      });
+    </script>
+  `, 'text/html');
+
+  const front = testInfo.outputPath('front.txt');
+  const back = testInfo.outputPath('back.txt');
+  await fs.promises.writeFile(front, 'front');
+  await fs.promises.writeFile(back, 'back');
+
+  await cli('open', server.PREFIX);
+  await cli('click', 'e2');
+  const { output, snapshot } = await cli('upload', front, back);
+  expect(output).toContain('await fileChooser.setFiles(');
+  expect(snapshot).toContain('Received: front.txt, back.txt');
+
+  await cli('click', 'e2');
+  const single = await cli('upload', back);
+  expect(single.snapshot).toContain('Received: back.txt');
+});
+
 test('eval', async ({ cli, server }) => {
   await cli('open', server.HELLO_WORLD);
   const { output } = await cli('eval', '() => document.title');
@@ -367,6 +394,18 @@ test('--raw on command without output', async ({ cli, server }) => {
   const { output } = await cli('click', '--raw', 'e2');
   expect(output).not.toContain('### ');
   expect(output).not.toContain('Page URL');
+});
+
+test('tool error exits with non-zero code', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/42028' } }, async ({ cli, server }) => {
+  await cli('open', server.HELLO_WORLD);
+
+  const { output, exitCode } = await cli('click', 'e999');
+  expect(output).toContain('Ref e999 not found in the current page snapshot.');
+  expect(exitCode).toBe(1);
+
+  const { output: jsonOutput, exitCode: jsonExitCode } = await cli('--json', 'click', 'e999');
+  expect(JSON.parse(jsonOutput).isError).toBe(true);
+  expect(jsonExitCode).toBe(1);
 });
 
 test('codegen escapes single quotes in user input', async ({ cli, server }) => {
