@@ -16,6 +16,7 @@
 
 import { inspect } from 'util';
 
+import { resolveBy } from '@isomorphic/by';
 import { asLocatorDescription, locatorCustomDescription } from '@isomorphic/locatorGenerators';
 import { getByAltTextSelector, getByLabelSelector, getByPlaceholderSelector, getByRoleSelector, getByTestIdSelector, getByTextSelector, getByTitleSelector } from '@isomorphic/locatorUtils';
 import { escapeForTextSelector } from '@isomorphic/stringUtils';
@@ -31,6 +32,8 @@ import type { EvaluateOptions } from './jsHandle';
 import type { DropPayload, FilePayload, FrameExpectParams, Rect, SelectOption, SelectOptionOptions, TimeoutOptions } from './types';
 import type * as structs from '../../types/structs';
 import type * as api from '../../types/types';
+import type { AriaSnapshotJSON } from '@isomorphic/ariaSnapshot';
+import type { By } from '@isomorphic/by';
 import type { ByRoleOptions } from '@isomorphic/locatorUtils';
 import type * as channels from './channels';
 
@@ -176,6 +179,10 @@ export class Locator implements api.Locator {
     if (selectorOrLocator._frame !== this._frame)
       throw new Error(`Locators must belong to the same frame.`);
     return new Locator(this._frame, this._selector + ' >> internal:chain=' + JSON.stringify(selectorOrLocator._selector), options);
+  }
+
+  get(by: By): Locator {
+    return this.locator(resolveBy(by, testIdAttributeName()));
   }
 
   getByTestId(testId: string | RegExp): Locator {
@@ -333,7 +340,7 @@ export class Locator implements api.Locator {
     return result.snapshot;
   }
 
-  async ariaSnapshotJSON(options: TimeoutOptions & { mode?: 'ai' | 'default', depth?: number, boxes?: boolean } = {}): Promise<any> {
+  async ariaSnapshotJSON(options: TimeoutOptions & { mode?: 'ai' | 'default', depth?: number, boxes?: boolean } = {}): Promise<AriaSnapshotJSON> {
     const result = await this._frame._channel.ariaSnapshotJSON({ mode: options.mode, selector: this._selector, depth: options.depth, boxes: options.boxes }, this._frame._timeout(options));
     return result.snapshot;
   }
@@ -455,6 +462,10 @@ export class FrameLocator implements api.FrameLocator {
     if (selectorOrLocator._frame !== this._frame)
       throw new Error(`Locators must belong to the same frame.`);
     return new Locator(this._frame, this._childSelector(selectorOrLocator._selector), options);
+  }
+
+  get(by: By): Locator {
+    return this.locator(resolveBy(by, testIdAttributeName()));
   }
 
   getByTestId(testId: string | RegExp): Locator {
