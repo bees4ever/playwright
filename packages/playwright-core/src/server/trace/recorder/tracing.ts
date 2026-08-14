@@ -337,7 +337,7 @@ export class Tracing extends SdkObject implements InstrumentationListener, Snaps
     this._closeAllGroups();
     this._harTracer.stop();
     this.flushHarEntries();
-    await this._fs.syncAndGetError().finally(() => {
+    await this._fs.sync().finally(() => {
       this._state = undefined;
     });
   }
@@ -363,7 +363,7 @@ export class Tracing extends SdkObject implements InstrumentationListener, Snaps
     this.abort();
     for (const harRecorder of this.harRecorders.values())
       await harRecorder.flush();
-    await this._fs.syncAndGetError();
+    await this._fs.sync();
   }
 
   harStart(page: Page | null, options: RecordHarOptions): string {
@@ -442,7 +442,7 @@ export class Tracing extends SdkObject implements InstrumentationListener, Snaps
     // Make sure all file operations complete.
     let error: Error | undefined;
     try {
-      await progress.race(this._fs.syncAndGetError());
+      await progress.race(this._fs.sync());
     } catch (e) {
       error = e as Error;
     }
@@ -544,12 +544,12 @@ export class Tracing extends SdkObject implements InstrumentationListener, Snaps
     return this._captureSnapshot(progress, sdkObject, 'before', event.beforeSnapshot);
   }
 
-  onBeforeInputAction(progress: Progress, sdkObject: SdkObject, point?: types.Point) {
+  onBeforeInputAction(progress: Progress, sdkObject: SdkObject, point?: types.Point, box?: types.Rect) {
     const { metadata } = progress;
     // IMPORTANT: no awaits in this method, this._appendTraceEvent must be called synchronously.
     if (!this._state?.callsInProgress.has(metadata.id))
       return Promise.resolve();
-    const event = createInputActionTraceEvent(metadata, point);
+    const event = createInputActionTraceEvent(metadata, point, box);
     if (!event)
       return Promise.resolve();
     this._temporarilyDisableThrottling(sdkObject.attribution.page);
@@ -802,13 +802,14 @@ function createBeforeActionTraceEvent(metadata: CallMetadata, parentId?: string)
   return event;
 }
 
-function createInputActionTraceEvent(metadata: CallMetadata, point: types.Point | undefined): trace.InputActionTraceEvent | null {
+function createInputActionTraceEvent(metadata: CallMetadata, point: types.Point | undefined, box: types.Rect | undefined): trace.InputActionTraceEvent | null {
   if (metadata.internal || metadata.method.startsWith('tracing'))
     return null;
   return {
     type: 'input',
     callId: metadata.id,
     point,
+    box,
   };
 }
 
