@@ -295,10 +295,17 @@ export const InspectModeController: React.FunctionComponent<{
     for (const { recorder, frameSelector } of recorders) {
       const actionSelector = fullSelector?.startsWith(frameSelector) ? fullSelector.substring(frameSelector.length).trim() : undefined;
       const ariaTemplate = parsedSnapshot?.errors.length === 0 ? parsedSnapshot.fragment : undefined;
+      try {
+        const highlightSelector = actionSelector || (ariaTemplate ? 'aria-template=' + JSON.stringify(ariaTemplate) : undefined);
+        if (highlightSelector)
+          recorder.injectedScript.setHighlights([{ selector: recorder.injectedScript.parseSelector(highlightSelector) }]);
+        else
+          recorder.injectedScript.setHighlights([]);
+      } catch {
+        recorder.injectedScript.setHighlights([]);
+      }
       recorder.setUIState({
         mode: isInspecting ? 'inspecting' : 'none',
-        actionSelector,
-        ariaTemplate,
         language: sdkLanguage,
         testIdAttributeName,
         overlay: { offsetX: 0 },

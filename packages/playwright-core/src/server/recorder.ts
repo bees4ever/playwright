@@ -18,7 +18,6 @@ import EventEmitter from 'events';
 import fs from 'fs';
 
 import { locatorOrSelectorAsSelector } from '@isomorphic/locatorParser';
-import { stringifySelector } from '@isomorphic/selectorParser';
 import { ManualPromise } from '@isomorphic/manualPromise';
 import { isUnderTest } from '@utils/debug';
 import { eventsHelper } from '@utils/eventsHelper';
@@ -77,7 +76,7 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
   private _context: BrowserContext;
   private _params: RecorderParams;
   private _mode: Mode;
-  private _highlightedElement: { selector?: string, ariaTemplate?: AriaTemplateNode } = {};
+  private _highlightedSelector: { selector: string, pierce: boolean } | undefined;
   private _overlayState: OverlayState = { offsetX: 0 };
   private _currentCallsMetadata = new Map<CallMetadata, SdkObject>();
   private _actionPoints = new Map<string, Point>();
@@ -166,16 +165,12 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
     const controller = new ProgressController();
     await controller.run(async progress => {
       await this._context.exposeBinding(progress, '__pw_recorderState', async source => {
-        let actionSelector: string | undefined;
         let actionPoint: Point | undefined;
         const hasActiveScreenshotCommand = [...this._currentCallsMetadata.keys()].some(isScreenshotCommand);
         if (!hasActiveScreenshotCommand) {
-          actionSelector = await this._scopeHighlightedSelectorToFrame(source.frame);
           for (const [metadata, sdkObject] of this._currentCallsMetadata) {
-            if (source.page === sdkObject.attribution.page) {
+            if (source.page === sdkObject.attribution.page)
               actionPoint = this._actionPoints.get(metadata.id) || actionPoint;
-              actionSelector = actionSelector || metadata.params.selector;
-            }
           }
         }
         let mode = this._mode;
@@ -184,8 +179,6 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
         const uiState: UIState = {
           mode,
           actionPoint,
-          actionSelector,
-          ariaTemplate: this._highlightedElement.ariaTemplate,
           language: this._currentLanguage,
           testIdAttributeName: this._testIdAttributeName(),
           overlay: this._overlayState,
@@ -254,7 +247,7 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
   async setMode(mode: Mode) {
     if (this._mode === mode)
       return;
-    this._highlightedElement = {};
+    this._updateHighlightedSelector(undefined).catch(() => {});
     this._mode = mode;
     this.emit(RecorderEvent.ModeChanged, this._mode);
     this._setEnabled(this._isRecording());
@@ -310,13 +303,12 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
   }
 
   async setHighlightedSelector(selector: string) {
-    this._highlightedElement = { selector: locatorOrSelectorAsSelector(this._currentLanguage, selector, this._context.selectors().testIdAttributeName()) };
-    await this._refreshOverlay();
+    const converted = locatorOrSelectorAsSelector(this._currentLanguage, selector, this._context.selectors().testIdAttributeName());
+    await this._updateHighlightedSelector(converted || undefined, true /* pierce */);
   }
 
   async setHighlightedAriaTemplate(ariaTemplate: AriaTemplateNode) {
-    this._highlightedElement = { ariaTemplate };
-    await this._refreshOverlay();
+    await this._updateHighlightedSelector('aria-template=' + JSON.stringify(ariaTemplate), true /* pierce */);
   }
 
   step() {
@@ -346,8 +338,7 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
   }
 
   async hideHighlightedSelector() {
-    this._highlightedElement = {};
-    await this._refreshOverlay();
+    await this._updateHighlightedSelector(undefined);
   }
 
   pausedSourceId() {
@@ -367,29 +358,19 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
     return this._callLogs;
   }
 
-  private async _scopeHighlightedSelectorToFrame(frame: Frame): Promise<string | undefined> {
-    if (!this._highlightedElement.selector)
+  private async _updateHighlightedSelector(selector: string | undefined, pierce = false) {
+    const previous = this._highlightedSelector;
+    if (!previous && !selector)
       return;
-    try {
-      const mainFrame = frame._page.mainFrame();
-      const resolved = await mainFrame.selectors.callOnSelector(this._highlightedElement.selector, { callWithoutMatches: true }, () => {}, {});
-      // selector couldn't be found, don't highlight anything
-      if (!resolved)
-        return '';
-
-      // selector points to no specific frame, highlight in all frames
-      if (resolved.frame === mainFrame)
-        return stringifySelector(resolved.info.parsed);
-
-      // selector points to this frame, highlight it
-      if (resolved.frame === frame)
-        return stringifySelector(resolved.info.parsed);
-
-      // selector points to a different frame, highlight nothing
-      return '';
-    } catch {
-      return '';
-    }
+    if (previous && previous.selector === selector && previous.pierce === pierce)
+      return;
+    this._highlightedSelector = selector === undefined ? undefined : { selector, pierce };
+    await Promise.all(this._context.pages().map(async page => {
+      if (previous)
+        await page.highlightController.removeHighlight(previous.selector).catch(() => {});
+      if (selector)
+        await page.highlightController.addHighlight(selector, { pierce }).catch(() => {});
+    }));
   }
 
   private async _refreshOverlay() {
@@ -409,8 +390,8 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
     this._updateCallLog([metadata]);
     if (isScreenshotCommand(metadata))
       this.hideHighlightedSelector();
-    else if (metadata.params && metadata.params.selector)
-      this._highlightedElement = { selector: metadata.params.selector };
+    else if (!metadata.internal && metadata.params && metadata.params.selector)
+      this._updateHighlightedSelector(metadata.params.selector).catch(() => {});
   }
 
   async onAfterCall(progress: Progress) {
@@ -496,6 +477,8 @@ export class Recorder extends EventEmitter<RecorderEventMap> implements Instrume
 
   private async _onPage(page: Page) {
     const frame = page.mainFrame();
+    if (this._highlightedSelector)
+      page.highlightController.addHighlight(this._highlightedSelector.selector, { pierce: this._highlightedSelector.pierce }).catch(() => {});
     page.on(Page.Events.Close, () => {
       this._signalProcessor.addAction({
         pageGuid: page.guid,
