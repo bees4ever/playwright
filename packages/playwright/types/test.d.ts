@@ -7632,26 +7632,6 @@ export interface PlaywrightTestOptions {
    */
   permissions: string[] | undefined;
   /**
-   * If set to true, all selectors in this context will pierce frames by default, as if every locator was created
-   * through [page.pierceFrames([options])](https://playwright.dev/docs/api/class-page#page-pierce-frames). Defaults to
-   * `false`.
-   *
-   * **Usage**
-   *
-   * ```js
-   * // playwright.config.ts
-   * import { defineConfig } from '@playwright/test';
-   *
-   * export default defineConfig({
-   *   use: {
-   *     pierceFrames: true,
-   *   }
-   * });
-   * ```
-   *
-   */
-  pierceFrames: boolean;
-  /**
    * Network proxy settings.
    *
    * **Usage**
@@ -10809,6 +10789,26 @@ export interface TestStepInfo {
    * @param description Optional description that will be reflected in a test report.
    */
   skip(condition: boolean, description?: string): void;
+
+  /**
+   * The list of annotations applicable to the current test step.
+   */
+  annotations: Array<{
+    /**
+     * Annotation type, for example `'skip'`.
+     */
+    type: string;
+
+    /**
+     * Optional description.
+     */
+    description?: string;
+
+    /**
+     * Optional location in the source where the annotation is added.
+     */
+    location?: Location;
+  }>;
 
   /**
    * The full title path starting with the test file name, including the step titles. See also

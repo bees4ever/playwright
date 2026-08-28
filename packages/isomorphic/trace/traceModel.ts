@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import { getActionGroup, renderTitleForCall } from '../protocolFormatter';
+import { getActionGroup, renderFullTitleForCall } from '../protocolFormatter';
 
 import type { Language } from '../locatorGenerators';
-import type { ResourceSnapshot } from '@trace/snapshot';
-import type * as trace from '@trace/trace';
-import type { ActionTraceEvent } from '@trace/trace';
+import type * as trace from './trace';
+import type { ActionTraceEvent, ResourceSnapshot } from './trace';
 import type { ActionEntry, ContextEntry, PageEntry } from './entries';
 import type { ActionGroup } from '../protocolFormatter';
 
@@ -80,6 +79,8 @@ export class TraceModel {
   readonly errorDescriptors: ErrorDescription[];
   readonly hasSource: boolean;
   readonly hasStepData: boolean;
+  readonly hasDomSnapshots: boolean;
+  readonly hasAriaSnapshots: boolean;
   readonly sdkLanguage: Language | undefined;
   readonly testIdAttributeName: string | undefined;
   readonly sources: Map<string, SourceModel>;
@@ -92,6 +93,7 @@ export class TraceModel {
   private _eventsForAction = new Map<ActionEntry, (trace.EventTraceEvent | trace.ConsoleMessageTraceEvent)[]>();
   private _screenshots = new Map<string, trace.ScreenshotTraceEvent>();
   private _ariaSnapshots = new Map<string, trace.AriaSnapshotTraceEvent>();
+  private _domSnapshots = new Set<string>();
 
   constructor(traceUri: string, contexts: ContextEntry[]) {
     const libraryContext = contexts.find(context => context.origin === 'library');
@@ -129,8 +131,12 @@ export class TraceModel {
         this._screenshots.set(`${event.callId}/${event.phase}`, event);
       for (const event of context.ariaSnapshots || [])
         this._ariaSnapshots.set(`${event.callId}/${event.phase}`, event);
+      for (const entry of context.domSnapshots || [])
+        this._domSnapshots.add(`${entry.callId}/${entry.phase}`);
       this.videos.push(...(context.videos || []));
     }
+    this.hasDomSnapshots = !!this._domSnapshots.size;
+    this.hasAriaSnapshots = !!this._screenshots.size || !!this._ariaSnapshots.size;
     this.attachments = this.actions.flatMap(action => action.attachments?.map(attachment => ({ ...attachment, callId: action.callId, traceUri })) ?? []);
     this.visibleAttachments = this.attachments.filter(attachment => !attachment.name.startsWith('_'));
 
@@ -171,6 +177,10 @@ export class TraceModel {
 
   screenshotForCall(callId: string, phase: trace.ActionPhase): trace.ScreenshotTraceEvent | undefined {
     return this._screenshots.get(`${callId}/${phase}`);
+  }
+
+  hasDomSnapshotForCall(callId: string, phase: trace.ActionPhase): boolean {
+    return this._domSnapshots.has(`${callId}/${phase}`);
   }
 
   ariaSnapshotForCall(callId: string, phase: trace.ActionPhase): trace.AriaSnapshotTraceEvent | undefined {
@@ -219,7 +229,7 @@ export class TraceModel {
     const { rootItem } = buildActionTree(actions);
     const actionTree: string[] = [];
     const visit = (actionItem: ActionTreeItem, indent: string) => {
-      const title = renderTitleForCall({ ...actionItem.action, type: actionItem.action.class });
+      const title = renderFullTitleForCall({ ...actionItem.action, type: actionItem.action.class });
       actionTree.push(`${indent}${title || actionItem.id}`);
       for (const child of actionItem.children)
         visit(child, indent + '  ');
@@ -358,7 +368,11 @@ function adjustMonotonicTime(context: ContextEntry, monotonicTimeDelta: number) 
       frame.timestamp += monotonicTimeDelta;
   }
   for (const video of context.videos || [])
-    video.timestampOrigin += monotonicTimeDelta;
+    video.timestamp += monotonicTimeDelta;
+  for (const screenshot of context.screenshots || [])
+    screenshot.timestamp += monotonicTimeDelta;
+  for (const ariaSnapshot of context.ariaSnapshots || [])
+    ariaSnapshot.timestamp += monotonicTimeDelta;
   for (const resource of context.resources) {
     if (resource._monotonicTime)
       resource._monotonicTime += monotonicTimeDelta;

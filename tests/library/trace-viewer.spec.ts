@@ -178,7 +178,7 @@ test('should open simple trace viewer', async ({ showTraceViewer }) => {
   const traceViewer = await showTraceViewer(traceFile);
   await expect(traceViewer.actionTitles).toHaveText([
     /Create page/,
-    /Navigate to "data:"/,
+    /Navigate.*data:/,
     /^Expect "toHaveTitle"[\d]+ms$/,
     /^Expect "toHaveURL"[\d]+ms$/,
     /Set content/,
@@ -191,7 +191,7 @@ test('should open simple trace viewer', async ({ showTraceViewer }) => {
     /Wait for navigation/,
     /Wait for event "response"/,
     /Wait for timeout/,
-    /Navigate to "\/frames\/frame.html"/,
+    /Navigate.*\/frames\/frame.html/,
     /Set viewport size/,
     /Hover/,
     /Close page/,
@@ -258,7 +258,7 @@ test('should open uncompressed trace directory', async ({ showTraceViewer }) => 
   const traceViewer = await showTraceViewer(traceDir);
   await expect(traceViewer.actionTitles).toHaveText([
     /Create page/,
-    /Navigate to "data:"/,
+    /Navigate.*data:/,
     /^Expect "toHaveTitle"[\d]+ms$/,
     /^Expect "toHaveURL"[\d]+ms$/,
     /Set content/,
@@ -271,7 +271,7 @@ test('should open uncompressed trace directory', async ({ showTraceViewer }) => 
     /Wait for navigation/,
     /Wait for event "response"/,
     /Wait for timeout/,
-    /Navigate to "\/frames\/frame.html"/,
+    /Navigate.*\/frames\/frame.html/,
     /Set viewport size/,
     /Hover/,
     /Close page/,
@@ -884,6 +884,27 @@ test('should capture data-url svg iframe', async ({ page, server, runAndTrace })
   expect(content).toContain(`d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"`);
 });
 
+test('should not let style text break out of the style element', async ({ page, runAndTrace, server }) => {
+  const traceViewer = await runAndTrace(async () => {
+    await page.goto(server.EMPTY_PAGE);
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = 'div{color:rgb(1, 2, 3)}</style><img src=x onerror="window.__pwned = true">';
+      const div = document.createElement('div');
+      div.textContent = 'hello';
+      document.body.append(style, div);
+    });
+    await page.locator('body').click();
+  });
+
+  const frame = await traceViewer.snapshotFrame('Click');
+  // If the "</style>" broke out of the element, this <img> would be a real node.
+  await expect(frame.locator('img')).toHaveCount(0);
+  // The stylesheet is preserved verbatim and still applies.
+  await expect(frame.locator('div')).toHaveCSS('color', 'rgb(1, 2, 3)');
+  expect(await frame.locator('body style').evaluate(el => el.textContent)).toContain('onerror=');
+});
+
 test('should contain adopted style sheets', async ({ page, runAndTrace, browserName }) => {
   const traceViewer = await runAndTrace(async () => {
     await page.setContent('<button>Hello</button>');
@@ -989,8 +1010,7 @@ test('empty adopted style sheets should not prevent node refs', async ({ page })
 
   const trace = await parseTrace(traceFile);
   const secondEvaluate = trace.model.actions.findLast(a => a.method === 'evaluateExpression');
-  expect(secondEvaluate.beforeSnapshot).toBeTruthy();
-  const snapshot = trace.snapshots.snapshotByName(trace.snapshots.snapshotsForTest()[0], secondEvaluate.beforeSnapshot);
+  const snapshot = trace.snapshots.snapshotForCall(secondEvaluate.callId, 'before');
   // Second snapshot should be just a copy of the first one.
   expect(snapshot.snapshot().html).toEqual([[1, 9]]);
 });
@@ -1855,7 +1875,7 @@ test('should not record route actions', {
   });
 
   await expect(traceViewer.actionTitles).toHaveText([
-    /Navigate to "\/empty.html"/,
+    /Navigate.*\/empty.html/,
   ]);
 });
 
@@ -2236,6 +2256,34 @@ test('should display aria mode', async ({ runAndTrace, page }) => {
   await expect(traceViewer.snapshotContainer).toBeVisible();
 });
 
+test('should disable aria setting when there are no aria snapshots', async ({ runAndTrace, page }) => {
+  const traceViewer = await runAndTrace(async () => {
+    await page.setContent('<!DOCTYPE html><button>Click me</button>');
+    await page.locator('button').click();
+  }, { snapshots: { dom: true } });
+
+  await traceViewer.selectAction('Click');
+  await expect(traceViewer.snapshotContainer).toBeVisible();
+
+  await traceViewer.showSettings();
+  await expect(traceViewer.displayAriaSetting).toBeDisabled();
+  await expect(traceViewer.displayAriaSetting).toBeChecked({ checked: false });
+});
+
+test('should force aria mode when there are no dom snapshots', async ({ runAndTrace, page }) => {
+  const traceViewer = await runAndTrace(async () => {
+    await page.setContent('<!DOCTYPE html><button>Click me</button>');
+    await page.locator('button').click();
+  }, { snapshots: { aria: true, screen: true } });
+
+  await traceViewer.selectAction('Click');
+  await expect(traceViewer.page.locator('.aria-mode-view')).toContainText('button "Click me"');
+
+  await traceViewer.showSettings();
+  await expect(traceViewer.displayAriaSetting).toBeDisabled();
+  await expect(traceViewer.displayAriaSetting).toBeChecked({ checked: true });
+});
+
 test('should render blob trace received from message', async ({ showTraceViewer }) => {
   const traceViewer = await showTraceViewer(undefined, { host: 'localhost' });
 
@@ -2256,7 +2304,7 @@ test('should render blob trace received from message', async ({ showTraceViewer 
   await expect(traceViewer.page.locator('.drop-target')).not.toBeVisible();
   await expect(traceViewer.actionTitles).toHaveText([
     /Create page/,
-    /Navigate to "data:"/,
+    /Navigate.*data:/,
     /toHaveTitle/,
     /toHaveURL/,
     /Set content/,
@@ -2269,7 +2317,7 @@ test('should render blob trace received from message', async ({ showTraceViewer 
     /Wait for navigation/,
     /Wait for event "response"/,
     /Wait for timeout/,
-    /Navigate to "\/frames\/frame.html"/,
+    /Navigate.*\/frames\/frame.html/,
     /Set viewport size/,
     /Hover/,
     /Close page/,
@@ -2378,7 +2426,7 @@ test('should filter actions', async ({ runAndTrace, page }) => {
   });
 
   await expect(traceViewer.actionTitles).toHaveText([
-    /Navigate to/,
+    /Navigate/,
     /Expect "toBeChecked"/,
   ]);
   await expect(traceViewer.page.getByText('3 hidden', { exact: true })).toBeVisible();
@@ -2393,7 +2441,7 @@ test('should filter actions', async ({ runAndTrace, page }) => {
 
   await traceViewer.page.locator('.setting').getByText('Getters').click();
   await expect(traceViewer.actionTitles).toHaveText([
-    /Navigate to/,
+    /Navigate/,
     /Get attribute "checked"/,
     /Expect "toBeChecked"/,
   ]);
@@ -2402,7 +2450,7 @@ test('should filter actions', async ({ runAndTrace, page }) => {
   await traceViewer.page.locator('.setting').getByText('Network routes').click();
   await expect(traceViewer.actionTitles).toHaveText([
     /Route requests/,
-    /Navigate to/,
+    /Navigate/,
     /Fulfill request/,
     /Get attribute "checked"/,
     /Expect "toBeChecked"/,
