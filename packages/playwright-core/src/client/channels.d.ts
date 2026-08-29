@@ -1327,7 +1327,7 @@ export type BrowserContextResponseEvent = {
   page?: PageChannel,
 };
 export type BrowserContextRecorderEventEvent = {
-  event: 'actionAdded' | 'signalAdded',
+  event: 'actionAdded' | 'actionUpdated' | 'signalAdded',
   data: any,
   page: PageChannel,
   code: string,
@@ -1941,6 +1941,7 @@ export type BrowserTypeConnectOverCDPParams = {
   slowMo?: number,
   isLocal?: boolean,
   noDefaults?: boolean,
+  isWebView?: boolean,
   artifactsDir?: string,
   transport?: Binary,
 };
@@ -1950,6 +1951,7 @@ export type BrowserTypeConnectOverCDPOptions = {
   slowMo?: number,
   isLocal?: boolean,
   noDefaults?: boolean,
+  isWebView?: boolean,
   artifactsDir?: string,
   transport?: Binary,
 };

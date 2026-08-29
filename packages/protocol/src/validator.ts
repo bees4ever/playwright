@@ -715,7 +715,7 @@ scheme.BrowserContextResponseEvent = tObject({
   page: tOptional(tChannel(['Page'])),
 });
 scheme.BrowserContextRecorderEventEvent = tObject({
-  event: tEnum(['actionAdded', 'signalAdded']),
+  event: tEnum(['actionAdded', 'actionUpdated', 'signalAdded']),
   data: tAny,
   page: tChannel(['Page']),
   code: tString,
@@ -1057,6 +1057,7 @@ scheme.BrowserTypeConnectOverCDPParams = tObject({
   slowMo: tOptional(tFloat),
   isLocal: tOptional(tBoolean),
   noDefaults: tOptional(tBoolean),
+  isWebView: tOptional(tBoolean),
   artifactsDir: tOptional(tString),
   transport: tOptional(tBinary),
 });
