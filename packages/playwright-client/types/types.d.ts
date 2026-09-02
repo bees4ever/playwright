@@ -10605,10 +10605,11 @@ export interface BrowserContext {
   setOffline(offline: boolean): Promise<void>;
 
   /**
-   * Clears the existing cookies, local storage, IndexedDB entries and virtual WebAuthn credentials, and sets the new
-   * storage state. When the storage state contains credentials, the virtual WebAuthn authenticator is installed
-   * (equivalent to [credentials.install()](https://playwright.dev/docs/api/class-credentials#credentials-install)),
-   * preventing all real authenticators from working in this context.
+   * Clears the existing cookies, local storage, IndexedDB entries, origin private file system entries and virtual
+   * WebAuthn credentials, and sets the new storage state. When the storage state contains credentials, the virtual
+   * WebAuthn authenticator is installed (equivalent to
+   * [credentials.install()](https://playwright.dev/docs/api/class-credentials#credentials-install)), preventing all
+   * real authenticators from working in this context.
    *
    * **Usage**
    *
@@ -10674,7 +10675,7 @@ export interface BrowserContext {
 
   /**
    * Returns storage state for this browser context, contains current cookies, local storage snapshot, IndexedDB
-   * snapshot and virtual WebAuthn credentials.
+   * snapshot, origin private file system snapshot and virtual WebAuthn credentials.
    * @param options
    */
   storageState(options?: {
@@ -10697,6 +10698,16 @@ export interface BrowserContext {
      * enable this.
      */
     indexedDB?: boolean;
+
+    /**
+     * Set to `true` to include the
+     * [origin private file system](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system)
+     * in the storage state snapshot.
+     *
+     * **NOTE** OPFS is currently not supported in ephemeral WebKit contexts.
+     *
+     */
+    opfs?: boolean;
 
     /**
      * The file path to save the storage state to. If
@@ -15532,7 +15543,9 @@ export interface Locator {
     hasText?: string|RegExp;
 
     /**
-     * Only matches visible or invisible elements.
+     * Only matches visible or invisible elements. Prefer the
+     * [locator.visible()](https://playwright.dev/docs/api/class-locator#locator-visible) shortcut when matching only
+     * visible elements.
      */
     visible?: boolean;
   }): Locator;
@@ -17204,6 +17217,34 @@ export interface Locator {
      */
     trial?: boolean;
   }): Promise<void>;
+
+  /**
+   * Returns a locator that matches only [visible](https://playwright.dev/docs/actionability#visible) elements, ignoring the invisible ones.
+   * This is the recommended way to distinguish elements by visibility, as opposed to the `:visible` CSS pseudo-class.
+   *
+   * Note that visibility is checked every time the locator is used, and not at the moment of the
+   * [locator.visible()](https://playwright.dev/docs/api/class-locator#locator-visible) call.
+   *
+   * **Usage**
+   *
+   * Consider a page with two buttons, the first invisible and the second visible.
+   *
+   * ```html
+   * <button style='display: none'>Invisible</button>
+   * <button>Visible</button>
+   * ```
+   *
+   * This will only find the second button, because it is visible, and then click it.
+   *
+   * ```js
+   * await page.locator('button').visible().click();
+   * ```
+   *
+   * To match invisible elements instead, use
+   * [locator.filter([options])](https://playwright.dev/docs/api/class-locator#locator-filter) with the
+   * [`visible`](https://playwright.dev/docs/api/class-locator#locator-filter-option-visible) option set to `false`.
+   */
+  visible(): Locator;
 
   /**
    * Returns when element specified by locator satisfies the
@@ -20287,6 +20328,11 @@ export interface APIRequestContext {
      * Set to `true` to include IndexedDB in the storage state snapshot.
      */
     indexedDB?: boolean;
+
+    /**
+     * Set to `true` to include the origin private file system in the storage state snapshot.
+     */
+    opfs?: boolean;
 
     /**
      * The file path to save the storage state to. If
