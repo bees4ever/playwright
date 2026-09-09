@@ -10601,6 +10601,12 @@ export interface BrowserContext {
 
   /**
    * @param offline Whether to emulate network being offline for the browser context.
+   *
+   * **NOTE** Offline emulation only affects requests that go through the browser's regular network stack, such as page
+   * navigations, `fetch()`, `XMLHttpRequest` and WebSockets. It does not affect WebRTC traffic: established
+   * `RTCPeerConnection`s keep sending and receiving media over UDP. To test WebRTC connection loss, interrupt the
+   * connection outside the browser, for example by stopping the TURN server or using an OS-level firewall.
+   *
    */
   setOffline(offline: boolean): Promise<void>;
 
@@ -17991,7 +17997,7 @@ export interface BrowserType<Unused = {}> {
     strictSelectors?: boolean;
 
     /**
-     * Maximum time in milliseconds to wait for the browser instance to start. Defaults to `30000` (30 seconds). Pass `0`
+     * Maximum time in milliseconds to wait for the browser instance to start. Defaults to `180000` (3 minutes). Pass `0`
      * to disable timeout.
      */
     timeout?: number;
@@ -18190,7 +18196,7 @@ export interface BrowserType<Unused = {}> {
     };
 
     /**
-     * Maximum time in milliseconds to wait for the browser instance to start. Defaults to `30000` (30 seconds). Pass `0`
+     * Maximum time in milliseconds to wait for the browser instance to start. Defaults to `180000` (3 minutes). Pass `0`
      * to disable timeout.
      */
     timeout?: number;
@@ -25498,7 +25504,7 @@ export interface LaunchOptions {
   slowMo?: number;
 
   /**
-   * Maximum time in milliseconds to wait for the browser instance to start. Defaults to `30000` (30 seconds). Pass `0`
+   * Maximum time in milliseconds to wait for the browser instance to start. Defaults to `180000` (3 minutes). Pass `0`
    * to disable timeout.
    */
   timeout?: number;
