@@ -129,6 +129,23 @@ Save and restore browser state including cookies and localStorage:
 -   **Restore state**: Load previously saved state into a new session.
 -   **Cookie management**: List, get, set, and delete individual cookies.
 
+### WebMCP tools
+
+Pages can register their own tools for agents through the experimental [WebMCP](https://webmachinelearning.github.io/webmcp/) API. When a page has them, the page status after a navigation reports how many, and `browser_webmcp_list` and `browser_webmcp_call` expose them:
+
+-   **List tools**: See the tools the page registers, with their input schemas and annotations.
+-   **Call a tool**: Invoke one by name, letting the page do the work instead of driving its UI.
+
+Tool names, descriptions, schemas and results are provided by the page, so treat them as untrusted input.
+
+WebMCP is experimental and only available in Chromium and Firefox behind a browser flag, passed through the [configuration file](#configuration-file):
+
+```json
+{
+  "browser": { "launchOptions": { "args": ["--enable-features=WebMCP"] } }
+}
+```
+
 ## Configuration
 
 ### Headed mode
@@ -176,6 +193,30 @@ Playwright MCP supports three profile modes:
 -   **Persistent (default)**: Login state and cookies are preserved between sessions. The profile is stored in `ms-playwright/mcp-{channel}-{workspace-hash}` in your platform's cache directory, so different projects get separate profiles automatically. Override with `--user-data-dir`.
 -   **Isolated**: Each session starts fresh. Pass `--isolated` to enable. You can load initial state with `--storage-state`.
 -   **Browser extension**: Connect to your existing browser tabs with the [Playwright Extension](https://github.com/microsoft/playwright/blob/main/packages/extension/README.md). Pass `--extension` to enable.
+
+### Idle timeout
+
+The browser is launched by the first tool call and stays open until the MCP server exits, so a page that keeps animating or rendering costs CPU for as long as the agent's session lasts. Pass `--timeout-idle` to close the browser after a period without tool calls, in milliseconds:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--timeout-idle=300000"
+      ]
+    }
+  }
+}
+```
+
+When no tool call has completed for that long, the browser is closed the same way `browser_close` closes it, headed or not. The next tool call relaunches the browser, and its response starts with a note about the idle close, so the agent checks the open tabs or navigates again instead of assuming the old page is still open. The timer never fires while a tool call is running.
+
+-   With `--isolated`, cookies and storage kept in memory are lost on an idle close. Use the persistent profile or `--storage-state` to keep them.
+-   With `--cdp-endpoint` or `--extension`, the browser is not owned by the server, so an idle close only disconnects from it: the pages stay open, and the note tells the agent to check the open tabs instead. With `--extension`, the next tool call goes through the connect flow again.
+-   With `--shared-browser-context`, the timer spans all clients: a client that is idle while others keep working keeps its tabs and state, and the shared browser is closed only once every client has been idle for the timeout.
 
 ### Configuration file
 

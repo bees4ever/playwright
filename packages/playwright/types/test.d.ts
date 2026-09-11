@@ -1967,13 +1967,15 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
   tsconfig?: string;
 
   /**
-   * Whether to update expected snapshots with the actual results produced by the test run. Defaults to `'missing'`.
+   * Whether to update expected snapshots with the actual results produced by the test run. Defaults to `'default'`.
    * - `'all'` - All tests that are executed will update snapshots.
    * - `'changed'` - All tests that are executed will update snapshots that did not match. Matching snapshots will not
    *   be updated. Also creates missing snapshots.
    * - `'missing'` - Missing snapshots are created, for example when authoring a new test and running it for the first
-   *   time. This is the default.
+   *   time. Tests that only create missing snapshots pass.
    * - `'none'` - No snapshots are updated.
+   * - `'default'` - Missing snapshots are created, but the tests that create them fail, so that the run does not
+   *   silently pass in CI. This is the default.
    *
    * Learn more about [snapshots](https://playwright.dev/docs/test-snapshots).
    *
@@ -1984,12 +1986,12 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    * import { defineConfig } from '@playwright/test';
    *
    * export default defineConfig({
-   *   updateSnapshots: 'missing',
+   *   updateSnapshots: 'default',
    * });
    * ```
    *
    */
-  updateSnapshots?: "all"|"changed"|"missing"|"none";
+  updateSnapshots?: "all"|"changed"|"missing"|"none"|"default";
 
   /**
    * Defines how to update snapshots in the source code.
@@ -2173,7 +2175,7 @@ export interface FullConfig<TestArgs = {}, WorkerArgs = {}> {
   /**
    * See [testConfig.updateSnapshots](https://playwright.dev/docs/api/class-testconfig#test-config-update-snapshots).
    */
-  updateSnapshots: "all"|"changed"|"missing"|"none";
+  updateSnapshots: "all"|"changed"|"missing"|"none"|"default";
 
   /**
    * See
@@ -7375,8 +7377,10 @@ export interface PlaywrightTestOptions {
    * with an exact match to the request origin that the certificate is valid for.
    *
    * Client certificate authentication is only active when at least one client certificate is provided. If you want to
-   * reject all client certificates sent by the server, you need to provide a client certificate with an `origin` that
-   * does not match any of the domains you plan to visit.
+   * reject all client certificates sent by the server for an origin you visit, set `noCertificate` to `true` for that
+   * origin instead of omitting it: omitting the origin entirely leaves the connection unintercepted, so the server's
+   * own certificate request still reaches the browser and may trigger a native certificate-selection prompt on some
+   * platforms. `noCertificate` forces interception for that origin while still presenting no client certificate.
    *
    * **NOTE** When using WebKit on macOS, accessing `localhost` will not pick up client certificates. You can make it
    * work by replacing `localhost` with `local.playwright`.
