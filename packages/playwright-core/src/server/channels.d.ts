@@ -2480,10 +2480,12 @@ export type FrameEvaluateExpressionParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
+  serialize?: ('Map' | 'Set')[],
   world?: 'main' | 'utility',
 };
 export type FrameEvaluateExpressionOptions = {
   isFunction?: boolean,
+  serialize?: ('Map' | 'Set')[],
   world?: 'main' | 'utility',
 };
 export type FrameEvaluateExpressionResult = {
@@ -2493,9 +2495,11 @@ export type FrameEvaluateExpressionHandleParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
+  serialize?: ('Map' | 'Set')[],
 };
 export type FrameEvaluateExpressionHandleOptions = {
   isFunction?: boolean,
+  serialize?: ('Map' | 'Set')[],
 };
 export type FrameEvaluateExpressionHandleResult = {
   handle: JSHandleChannel,
@@ -2939,10 +2943,12 @@ export type JSHandleEvaluateExpressionParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
+  serialize?: ('Map' | 'Set')[],
   world?: 'main' | 'utility',
 };
 export type JSHandleEvaluateExpressionOptions = {
   isFunction?: boolean,
+  serialize?: ('Map' | 'Set')[],
   world?: 'main' | 'utility',
 };
 export type JSHandleEvaluateExpressionResult = {
@@ -2952,9 +2958,11 @@ export type JSHandleEvaluateExpressionHandleParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
+  serialize?: ('Map' | 'Set')[],
 };
 export type JSHandleEvaluateExpressionHandleOptions = {
   isFunction?: boolean,
+  serialize?: ('Map' | 'Set')[],
 };
 export type JSHandleEvaluateExpressionHandleResult = {
   handle: JSHandleChannel,
@@ -5076,6 +5084,7 @@ export type TracingTracingStartParams = {
   snapshotAria?: boolean,
   snapshotScreen?: boolean,
   screencast?: boolean,
+  coverage?: boolean,
   live?: boolean,
 };
 export type TracingTracingStartOptions = {
@@ -5084,6 +5093,7 @@ export type TracingTracingStartOptions = {
   snapshotAria?: boolean,
   snapshotScreen?: boolean,
   screencast?: boolean,
+  coverage?: boolean,
   live?: boolean,
 };
 export type TracingTracingStartResult = void;
