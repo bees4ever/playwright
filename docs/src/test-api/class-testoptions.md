@@ -725,12 +725,17 @@ export default defineConfig({
   - `size` ?<[Object]> Size of the recorded video. Optional.
     - `width` <[int]>
     - `height` <[int]>
+  - `fps` ?<[int]> Frame rate of the recorded video in frames per second. Defaults to `25`.
   - `show` ?<[Object]> If specified, visually annotates the video with test information and action highlights.
     - `actions` ?<[Object]> Controls visual annotations on interacted elements.
       - `duration` ?<[float]> How long each annotation is displayed in milliseconds. Defaults to `500`.
       - `position` ?<[AnnotatePosition]<"top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right">> Position of the action title overlay. Defaults to `"top-right"`.
-      - `fontSize` ?<[int]> Font size of the action title in pixels. Defaults to `24`.
+      - `fontSize` ?<[int]> Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
       - `cursor` ?<[ScreencastCursor]<"none"|"pointer">> Cursor decoration shown for pointer actions. `"pointer"` (the default) renders a mouse pointer that animates from the previous action point to the next one. `"none"` disables the cursor decoration.
+      - `style` ?<[Object]> Styles of the action decorations.
+        - `point` ?<[string]> CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+        - `highlight` ?<[string]> CSS declarations for the box that covers the target element. Not shown when omitted.
+        - `title` ?<[string]> CSS declarations for the action title.
     - `test` ?<[Object]> Controls test information displayed as a status overlay in the video.
       - `level` ?<[TestAnnotationLevel]<"file"|"test"|"step">> Level of the detail to include about the current test.
       - `position` ?<[AnnotatePosition]<"top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right">> Position of the test information overlay. Defaults to `"top-left"`.
@@ -748,6 +753,8 @@ Whether to record video for each test. Defaults to `'off'`. The initial run of a
 See [video modes](../test-use-options.md#video-modes) for a side-by-side comparison of what each mode records and keeps.
 
 To control video size, pass an object with `mode` and `size` properties. If video size is not specified, it will be equal to [`property: TestOptions.viewport`] scaled down to fit into 800x800. If `viewport` is not configured explicitly the video size defaults to 800x450. Actual picture of each page will be scaled down if necessary to fit the specified size.
+
+To record smoother video of animations and scrolling, pass `fps`, for example `{ mode: 'on', size: { width: 1920, height: 1080 }, fps: 60 }`. Higher frame rates and sizes use more CPU for encoding. Firefox and WebKit currently capture up to 25 frames per second.
 
 To annotate actions in the video, pass `show` with `action` and/or `test` sub-options. The `action` option controls visual highlights on interacted elements with an optional `delay` in milliseconds (defaults to `500`). The `test` option controls which test information is displayed as a status overlay.
 

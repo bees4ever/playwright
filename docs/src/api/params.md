@@ -858,11 +858,16 @@ When set to `minimal`, only record information necessary for routing from HAR. T
     Actual picture of each page will be scaled down if necessary to fit the specified size.
     - `width` <[int]> Video frame width.
     - `height` <[int]> Video frame height.
+  - `fps` ?<[int]> Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up to 25 frames per second.
   - `showActions` ?<[Object]> If specified, enables visual annotations on interacted elements during video recording.
     - `duration` ?<[float]> How long each annotation is displayed in milliseconds. Defaults to `500`.
     - `position` ?<[AnnotatePosition]<"top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right">> Position of the action title overlay. Defaults to `"top-right"`.
-    - `fontSize` ?<[int]> Font size of the action title in pixels. Defaults to `24`.
+    - `fontSize` ?<[int]> Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
     - `cursor` ?<[ScreencastCursor]<"none"|"pointer">> Cursor decoration shown for pointer actions. `"pointer"` (the default) renders a mouse pointer that animates from the previous action point to the next one. `"none"` disables the cursor decoration.
+    - `style` ?<[Object]> Styles of the action decorations.
+      - `point` ?<[string]> CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+      - `highlight` ?<[string]> CSS declarations for the box that covers the target element. Not shown when omitted.
+      - `title` ?<[string]> CSS declarations for the action title.
 
 Enables video recording for all pages into `recordVideo.dir` directory. If not specified videos are not recorded. Make
 sure to await [`method: BrowserContext.close`] for videos to be saved.
@@ -886,6 +891,13 @@ not recorded. Make sure to call [`method: BrowserContext.close`] for videos to b
 Dimensions of the recorded videos. If not specified the size will be equal to `viewport`
 scaled down to fit into 800x800. If `viewport` is not configured explicitly the video size defaults to 800x450.
 Actual picture of each page will be scaled down if necessary to fit the specified size.
+
+## context-option-recordvideo-fps
+* langs: csharp, java, python
+  - alias-python: record_video_fps
+- `recordVideoFps` <[int]>
+
+Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up to 25 frames per second.
 
 ## context-option-proxy
 - `proxy` <[Object]>

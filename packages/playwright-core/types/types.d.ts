@@ -11592,6 +11592,12 @@ export interface Browser {
       };
 
       /**
+       * Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up
+       * to 25 frames per second.
+       */
+      fps?: number;
+
+      /**
        * If specified, enables visual annotations on interacted elements during video recording.
        */
       showActions?: {
@@ -11606,7 +11612,7 @@ export interface Browser {
         position?: "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right";
 
         /**
-         * Font size of the action title in pixels. Defaults to `24`.
+         * Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
          */
         fontSize?: number;
 
@@ -11615,6 +11621,26 @@ export interface Browser {
          * the previous action point to the next one. `"none"` disables the cursor decoration.
          */
         cursor?: "none"|"pointer";
+
+        /**
+         * Styles of the action decorations.
+         */
+        style?: {
+          /**
+           * CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+           */
+          point?: string;
+
+          /**
+           * CSS declarations for the box that covers the target element. Not shown when omitted.
+           */
+          highlight?: string;
+
+          /**
+           * CSS declarations for the action title.
+           */
+          title?: string;
+        };
       };
     };
 
@@ -17955,6 +17981,12 @@ export interface BrowserType<Unused = {}> {
       };
 
       /**
+       * Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up
+       * to 25 frames per second.
+       */
+      fps?: number;
+
+      /**
        * If specified, enables visual annotations on interacted elements during video recording.
        */
       showActions?: {
@@ -17969,7 +18001,7 @@ export interface BrowserType<Unused = {}> {
         position?: "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right";
 
         /**
-         * Font size of the action title in pixels. Defaults to `24`.
+         * Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
          */
         fontSize?: number;
 
@@ -17978,6 +18010,26 @@ export interface BrowserType<Unused = {}> {
          * the previous action point to the next one. `"none"` disables the cursor decoration.
          */
         cursor?: "none"|"pointer";
+
+        /**
+         * Styles of the action decorations.
+         */
+        style?: {
+          /**
+           * CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+           */
+          point?: string;
+
+          /**
+           * CSS declarations for the box that covers the target element. Not shown when omitted.
+           */
+          highlight?: string;
+
+          /**
+           * CSS declarations for the action title.
+           */
+          title?: string;
+        };
       };
     };
 
@@ -18693,6 +18745,7 @@ export interface Screencast {
       height: number;
     };
     quality?: number;
+    fps?: number;
   }): Promise<Disposable>;
   /**
    * Removes action decorations.
@@ -18722,6 +18775,8 @@ export interface Screencast {
 
     /**
      * Font size of the action title in pixels. Defaults to `24`.
+     * @deprecated Use `title` in [`style`](https://playwright.dev/docs/api/class-screencast#screencast-show-actions-option-style)
+     * instead, for example `style: { title: 'font-size: 32px' }`.
      */
     fontSize?: number;
 
@@ -18729,6 +18784,44 @@ export interface Screencast {
      * Position of the action title overlay. Defaults to `"top-right"`.
      */
     position?: "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right";
+
+    /**
+     * Styles of the action decorations. All decorations fade out over
+     * [`duration`](https://playwright.dev/docs/api/class-screencast#screencast-show-actions-option-duration).
+     *
+     * **Usage**
+     *
+     * ```js
+     * await page.screencast.showActions({
+     *   style: {
+     *     point: 'width: 20px; height: 20px; border-radius: 50%; background: red',
+     *     highlight: 'outline: 2px solid #333; background: rgba(0, 128, 255, .15)',
+     *     title: 'font-size: 16px',
+     *   },
+     * });
+     * ```
+     *
+     */
+    style?: {
+      /**
+       * CSS declarations for the marker at the action point. The marker is positioned at the action point, has zero size
+       * and is centered on the point, so its size and look come from this style. Not shown when omitted.
+       */
+      point?: string;
+
+      /**
+       * CSS declarations for the box that covers the target element. The box is positioned and sized to the element bounds.
+       * Not shown when omitted.
+       */
+      highlight?: string;
+
+      /**
+       * CSS declarations for the action title, for example `'font-size: 32px; background: #333'`. The title is placed
+       * according to
+       * [`position`](https://playwright.dev/docs/api/class-screencast#screencast-show-actions-option-position).
+       */
+      title?: string;
+    };
   }): Promise<Disposable>;
 
   /**
@@ -24134,6 +24227,12 @@ export interface Electron {
       };
 
       /**
+       * Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up
+       * to 25 frames per second.
+       */
+      fps?: number;
+
+      /**
        * If specified, enables visual annotations on interacted elements during video recording.
        */
       showActions?: {
@@ -24148,7 +24247,7 @@ export interface Electron {
         position?: "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right";
 
         /**
-         * Font size of the action title in pixels. Defaults to `24`.
+         * Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
          */
         fontSize?: number;
 
@@ -24157,6 +24256,26 @@ export interface Electron {
          * the previous action point to the next one. `"none"` disables the cursor decoration.
          */
         cursor?: "none"|"pointer";
+
+        /**
+         * Styles of the action decorations.
+         */
+        style?: {
+          /**
+           * CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+           */
+          point?: string;
+
+          /**
+           * CSS declarations for the box that covers the target element. Not shown when omitted.
+           */
+          highlight?: string;
+
+          /**
+           * CSS declarations for the action title.
+           */
+          title?: string;
+        };
       };
     };
 
@@ -24849,6 +24968,12 @@ export interface AndroidDevice {
       };
 
       /**
+       * Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up
+       * to 25 frames per second.
+       */
+      fps?: number;
+
+      /**
        * If specified, enables visual annotations on interacted elements during video recording.
        */
       showActions?: {
@@ -24863,7 +24988,7 @@ export interface AndroidDevice {
         position?: "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right";
 
         /**
-         * Font size of the action title in pixels. Defaults to `24`.
+         * Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
          */
         fontSize?: number;
 
@@ -24872,6 +24997,26 @@ export interface AndroidDevice {
          * the previous action point to the next one. `"none"` disables the cursor decoration.
          */
         cursor?: "none"|"pointer";
+
+        /**
+         * Styles of the action decorations.
+         */
+        style?: {
+          /**
+           * CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+           */
+          point?: string;
+
+          /**
+           * CSS declarations for the box that covers the target element. Not shown when omitted.
+           */
+          highlight?: string;
+
+          /**
+           * CSS declarations for the action title.
+           */
+          title?: string;
+        };
       };
     };
 
@@ -26068,6 +26213,12 @@ export interface BrowserContextOptions {
     };
 
     /**
+     * Frame rate of the recorded videos in frames per second. Defaults to `25`. Firefox and WebKit currently capture up
+     * to 25 frames per second.
+     */
+    fps?: number;
+
+    /**
      * If specified, enables visual annotations on interacted elements during video recording.
      */
     showActions?: {
@@ -26082,7 +26233,7 @@ export interface BrowserContextOptions {
       position?: "top-left"|"top"|"top-right"|"bottom-left"|"bottom"|"bottom-right";
 
       /**
-       * Font size of the action title in pixels. Defaults to `24`.
+       * Font size of the action title in pixels. Defaults to `24`. Deprecated, use `style.title` instead.
        */
       fontSize?: number;
 
@@ -26091,6 +26242,26 @@ export interface BrowserContextOptions {
        * the previous action point to the next one. `"none"` disables the cursor decoration.
        */
       cursor?: "none"|"pointer";
+
+      /**
+       * Styles of the action decorations.
+       */
+      style?: {
+        /**
+         * CSS declarations for the zero-sized marker centered on the action point. Not shown when omitted.
+         */
+        point?: string;
+
+        /**
+         * CSS declarations for the box that covers the target element. Not shown when omitted.
+         */
+        highlight?: string;
+
+        /**
+         * CSS declarations for the action title.
+         */
+        title?: string;
+      };
     };
   };
 
