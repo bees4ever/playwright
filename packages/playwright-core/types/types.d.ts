@@ -11456,8 +11456,8 @@ export interface Browser {
 
     /**
      * Whether the `meta viewport` tag is taken into account and touch events are enabled. isMobile is a part of device,
-     * so you don't actually need to set it manually. Defaults to `false` and is not supported in Firefox. Learn more
-     * about [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
+     * so you don't actually need to set it manually. Defaults to `false`. Learn more about
+     * [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
      */
     isMobile?: boolean;
 
@@ -17845,8 +17845,8 @@ export interface BrowserType<Unused = {}> {
 
     /**
      * Whether the `meta viewport` tag is taken into account and touch events are enabled. isMobile is a part of device,
-     * so you don't actually need to set it manually. Defaults to `false` and is not supported in Firefox. Learn more
-     * about [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
+     * so you don't actually need to set it manually. Defaults to `false`. Learn more about
+     * [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
      */
     isMobile?: boolean;
 
@@ -20604,6 +20604,7 @@ export interface Clock {
   /**
    * Install fake implementations for the following time-related functions:
    * - `Date`
+   * - `Temporal.Now`
    * - `setTimeout`
    * - `clearTimeout`
    * - `setInterval`
@@ -24827,8 +24828,8 @@ export interface AndroidDevice {
 
     /**
      * Whether the `meta viewport` tag is taken into account and touch events are enabled. isMobile is a part of device,
-     * so you don't actually need to set it manually. Defaults to `false` and is not supported in Firefox. Learn more
-     * about [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
+     * so you don't actually need to set it manually. Defaults to `false`. Learn more about
+     * [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
      */
     isMobile?: boolean;
 
@@ -26077,8 +26078,8 @@ export interface BrowserContextOptions {
 
   /**
    * Whether the `meta viewport` tag is taken into account and touch events are enabled. isMobile is a part of device,
-   * so you don't actually need to set it manually. Defaults to `false` and is not supported in Firefox. Learn more
-   * about [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
+   * so you don't actually need to set it manually. Defaults to `false`. Learn more about
+   * [mobile emulation](https://playwright.dev/docs/emulation#ismobile).
    */
   isMobile?: boolean;
 
