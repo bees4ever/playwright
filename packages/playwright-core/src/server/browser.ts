@@ -108,10 +108,8 @@ export abstract class Browser extends SdkObject {
     let context: BrowserContext | undefined;
     try {
       if (options.clientCertificates?.length) {
-        clientCertificatesProxy = await ClientCertificatesProxy.create(progress, options);
-        options = { ...options };
-        options.proxyOverride = clientCertificatesProxy.proxySettings();
-        options.internalIgnoreHTTPSErrors = true;
+        clientCertificatesProxy = await ClientCertificatesProxy.create(progress, { ...options, proxy: options.proxy || this.options.proxy });
+        options = { ...options, proxyOverride: clientCertificatesProxy.proxySettings(), internalIgnoreHTTPSErrors: true };
       }
       context = await progress.race(this.doCreateNewContext(options));
       context._clientCertificatesProxy = clientCertificatesProxy;
