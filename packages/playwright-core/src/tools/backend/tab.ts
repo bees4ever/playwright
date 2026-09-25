@@ -137,7 +137,7 @@ export class Tab extends EventEmitter<TabEventsInterface> {
       eventsHelper.addEventListener(p, 'dialog', dialog => this._dialogShown(dialog)),
       eventsHelper.addEventListener(p, 'dialogclosed', dialog => this._dialogClosed(dialog)),
       eventsHelper.addEventListener(p, 'download', download => {
-        void this._downloadStarted(download);
+        this._downloadStarted(download).catch(e => debug('pw:tools:error')(e));
       }),
     ];
     // eslint-disable-next-line no-restricted-syntax
@@ -348,8 +348,11 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     this._clearCollectedArtifacts();
 
     const { promise: downloadEvent, abort: abortDownloadEvent } = eventWaiter<playwright.Download>(this.page, 'download', 3000);
+    let modalStates: ModalState[];
     try {
-      await this.page.goto(url, { waitUntil: 'domcontentloaded', ...this.navigationTimeoutOptions });
+      modalStates = await this._raceAgainstModalStates(async () => {
+        await this.page.goto(url, { waitUntil: 'domcontentloaded', ...this.navigationTimeoutOptions });
+      });
       abortDownloadEvent();
     } catch (_e: unknown) {
       const e = _e as Error;
@@ -364,9 +367,18 @@ export class Tab extends EventEmitter<TabEventsInterface> {
       await new Promise(resolve => setTimeout(resolve, 500));
       return;
     }
+    if (modalStates.length)
+      return;
 
     // Cap load event to 5 seconds, the page is operational at this point.
     await this.waitForLoadState('load', { timeout: 5000 });
+  }
+
+  async reload() {
+    await this._initializedPromise;
+    await this._raceAgainstModalStates(async () => {
+      await this.page.reload(this.navigationTimeoutOptions);
+    });
   }
 
   async consoleMessageCount(): Promise<{ total: number, errors: number, warnings: number }> {
@@ -504,13 +516,11 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     const listener = (modalState: ModalState) => promise.resolve([modalState]);
     this.once(TabEvents.modalState, listener);
 
-    return await Promise.race([
-      action().then(() => {
-        this.off(TabEvents.modalState, listener);
-        return [];
-      }),
-      promise,
-    ]);
+    try {
+      return await Promise.race([action().then(() => []), promise]);
+    } finally {
+      this.off(TabEvents.modalState, listener);
+    }
   }
 
   async waitForCompletion(callback: () => Promise<void>) {

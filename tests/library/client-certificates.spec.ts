@@ -547,6 +547,7 @@ test.describe('browser', () => {
     const { origin, hostname, port } = new URL(serverURL);
     proxyServer.forwardTo(parseInt(port, 10), { allowConnectRequests: true });
     const proxy = { server: `localhost:${proxyServer.PORT}` };
+    const serverHost = `${browserName === 'webkit' && isMac ? 'localhost' : '127.0.0.1'}:${port}`;
     const clientCertificates = [{
       origin,
       certPath: asset('client-certificates/client/trusted/cert.pem'),
@@ -557,8 +558,8 @@ test.describe('browser', () => {
       const page = await browser.newPage({ ignoreHTTPSErrors: true, clientCertificates });
       await page.goto(serverURL);
       await expect(page.getByTestId('message')).toHaveText('Hello Alice, your certificate was issued by localhost!');
-      const host = browserName === 'webkit' && isMac ? 'localhost' : '127.0.0.1';
-      expect([...new Set(proxyServer.connectHosts)]).toEqual([`${host}:${port}`]);
+      // Headed Chromium also sends its own background requests through the launch proxy.
+      expect(proxyServer.connectHosts).toContain(serverHost);
       await page.close();
     }
     proxyServer.connectHosts = [];
@@ -566,7 +567,7 @@ test.describe('browser', () => {
       const page = await browser.newPage({ ignoreHTTPSErrors: true, clientCertificates, proxy: { ...proxy, bypass: hostname } });
       await page.goto(serverURL);
       await expect(page.getByTestId('message')).toHaveText('Hello Alice, your certificate was issued by localhost!');
-      expect(proxyServer.connectHosts).toEqual([]);
+      expect(proxyServer.connectHosts).not.toContain(serverHost);
       await page.close();
     }
     await browser.close();
@@ -687,7 +688,10 @@ test.describe('browser', () => {
       } else if (req.url === '/from-fetch-api') {
         res.writeHead(200, {
           'Content-Type': 'text/plain',
-          'Transfer-Encoding': 'chunked'
+          'Transfer-Encoding': 'chunked',
+          // A renegotiated connection must not be reused: a second renegotiation on
+          // the same socket trips Node's tls.CLIENT_RENEG_LIMIT and destroys it.
+          'Connection': 'close'
         });
         res.flushHeaders();
 
@@ -707,7 +711,8 @@ test.describe('browser', () => {
         res.writeHead(200, {
           'Content-Type': 'text/css',
           'Content-Encoding': 'gzip',
-          'Transfer-Encoding': 'chunked'
+          'Transfer-Encoding': 'chunked',
+          'Connection': 'close'
         });
         res.flushHeaders();
 
