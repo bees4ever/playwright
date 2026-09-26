@@ -89,7 +89,7 @@ export interface PageDelegate {
   getBoundingBox(handle: dom.ElementHandle): Promise<types.Rect | null>;
   getFrameElement(frame: frames.Frame): Promise<dom.ElementHandle>;
   scrollRectIntoViewIfNeeded(handle: dom.ElementHandle, rect?: types.Rect): Promise<'error:notvisible' | 'error:notconnected' | 'done'>;
-  startScreencast(options: { width: number, height: number, quality: number }): void;
+  startScreencast(options: { width: number, height: number, quality: number, fps?: number }): void;
   stopScreencast(): void;
 
   pdf?: (options: channels.PagePdfParams) => Promise<Buffer>;
@@ -107,8 +107,6 @@ export interface PageDelegate {
   // WebKit hack.
   shouldToggleStyleSheetToSyncAnimations(): boolean;
   setDockTile(image: Buffer): Promise<void>;
-  // Allow Bidi to set different ffmpeg video filter args.
-  getFFmpegVideoFilterArgs?: (options: { width: number, height: number }) => string;
 }
 
 type EmulatedSize = { screen: types.Size, viewport: types.Size };
