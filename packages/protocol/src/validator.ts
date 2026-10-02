@@ -329,6 +329,28 @@ scheme.APIRequestContextFetchLogParams = tObject({
 scheme.APIRequestContextFetchLogResult = tObject({
   log: tArray(tString),
 });
+scheme.APIRequestContextAddCookiesParams = tObject({
+  cookies: tArray(tType('SetNetworkCookie')),
+});
+scheme.APIRequestContextAddCookiesResult = tOptional(tObject({}));
+scheme.APIRequestContextClearCookiesParams = tObject({
+  name: tOptional(tString),
+  nameRegexSource: tOptional(tString),
+  nameRegexFlags: tOptional(tString),
+  domain: tOptional(tString),
+  domainRegexSource: tOptional(tString),
+  domainRegexFlags: tOptional(tString),
+  path: tOptional(tString),
+  pathRegexSource: tOptional(tString),
+  pathRegexFlags: tOptional(tString),
+});
+scheme.APIRequestContextClearCookiesResult = tOptional(tObject({}));
+scheme.APIRequestContextCookiesParams = tObject({
+  urls: tArray(tString),
+});
+scheme.APIRequestContextCookiesResult = tObject({
+  cookies: tArray(tType('NetworkCookie')),
+});
 scheme.APIRequestContextStorageStateParams = tObject({
   indexedDB: tOptional(tBoolean),
   opfs: tOptional(tBoolean),
@@ -504,7 +526,7 @@ scheme.BrowserNewContextParams = tObject({
   storageState: tOptional(tObject({
     cookies: tOptional(tArray(tType('SetNetworkCookie'))),
     origins: tOptional(tArray(tType('SetOriginStorage'))),
-    credentials: tOptional(tArray(tType('VirtualCredential'))),
+    credentials: tOptional(tArray(tType('SetVirtualCredential'))),
   })),
 });
 scheme.BrowserNewContextResult = tObject({
@@ -584,7 +606,7 @@ scheme.BrowserNewContextForReuseParams = tObject({
   storageState: tOptional(tObject({
     cookies: tOptional(tArray(tType('SetNetworkCookie'))),
     origins: tOptional(tArray(tType('SetOriginStorage'))),
-    credentials: tOptional(tArray(tType('VirtualCredential'))),
+    credentials: tOptional(tArray(tType('SetVirtualCredential'))),
   })),
 });
 scheme.BrowserNewContextForReuseResult = tObject({
@@ -859,7 +881,7 @@ scheme.BrowserContextSetStorageStateParams = tObject({
   storageState: tOptional(tObject({
     cookies: tOptional(tArray(tType('SetNetworkCookie'))),
     origins: tOptional(tArray(tType('SetOriginStorage'))),
-    credentials: tOptional(tArray(tType('VirtualCredential'))),
+    credentials: tOptional(tArray(tType('SetVirtualCredential'))),
   })),
 });
 scheme.BrowserContextSetStorageStateResult = tOptional(tObject({}));
@@ -950,6 +972,7 @@ scheme.BrowserContextCredentialsCreateParams = tObject({
   userHandle: tOptional(tString),
   privateKey: tOptional(tString),
   publicKey: tOptional(tString),
+  signCount: tOptional(tInt),
 });
 scheme.BrowserContextCredentialsCreateResult = tObject({
   credential: tType('VirtualCredential'),
@@ -1263,7 +1286,6 @@ scheme.FrameEvalOnSelectorParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  world: tOptional(tEnum(['main', 'utility'])),
 });
 scheme.FrameEvalOnSelectorResult = tObject({
   value: tType('SerializedValue'),
@@ -1273,7 +1295,6 @@ scheme.FrameEvalOnSelectorAllParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  world: tOptional(tEnum(['main', 'utility'])),
 });
 scheme.FrameEvalOnSelectorAllResult = tObject({
   value: tType('SerializedValue'),
@@ -1399,8 +1420,6 @@ scheme.FrameEvaluateExpressionParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  serialize: tOptional(tArray(tEnum(['Map', 'Set']))),
-  world: tOptional(tEnum(['main', 'utility'])),
 });
 scheme.FrameEvaluateExpressionResult = tObject({
   value: tType('SerializedValue'),
@@ -1409,7 +1428,6 @@ scheme.FrameEvaluateExpressionHandleParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  serialize: tOptional(tArray(tEnum(['Map', 'Set']))),
 });
 scheme.FrameEvaluateExpressionHandleResult = tObject({
   handle: tChannel(['ElementHandle', 'JSHandle']),
@@ -1715,8 +1733,6 @@ scheme.JSHandleEvaluateExpressionParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  serialize: tOptional(tArray(tEnum(['Map', 'Set']))),
-  world: tOptional(tEnum(['main', 'utility'])),
 });
 scheme.ElementHandleEvaluateExpressionParams = tType('JSHandleEvaluateExpressionParams');
 scheme.JSHandleEvaluateExpressionResult = tObject({
@@ -1727,7 +1743,6 @@ scheme.JSHandleEvaluateExpressionHandleParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  serialize: tOptional(tArray(tEnum(['Map', 'Set']))),
 });
 scheme.ElementHandleEvaluateExpressionHandleParams = tType('JSHandleEvaluateExpressionHandleParams');
 scheme.JSHandleEvaluateExpressionHandleResult = tObject({
@@ -1766,7 +1781,6 @@ scheme.ElementHandleEvalOnSelectorParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  world: tOptional(tEnum(['main', 'utility'])),
 });
 scheme.ElementHandleEvalOnSelectorResult = tObject({
   value: tType('SerializedValue'),
@@ -1776,7 +1790,6 @@ scheme.ElementHandleEvalOnSelectorAllParams = tObject({
   expression: tString,
   isFunction: tOptional(tBoolean),
   arg: tType('SerializedArgument'),
-  world: tOptional(tEnum(['main', 'utility'])),
 });
 scheme.ElementHandleEvalOnSelectorAllResult = tObject({
   value: tType('SerializedValue'),
@@ -3082,11 +3095,6 @@ scheme.SerializedValue = tObject({
     k: tString,
     v: tType('SerializedValue'),
   }))),
-  me: tOptional(tArray(tObject({
-    k: tType('SerializedValue'),
-    v: tType('SerializedValue'),
-  }))),
-  se: tOptional(tArray(tType('SerializedValue'))),
   h: tOptional(tInt),
   fn: tOptional(tString),
   id: tOptional(tInt),
@@ -3102,11 +3110,6 @@ scheme.SerializedError = tObject({
     name: tString,
     stack: tOptional(tString),
     code: tOptional(tString),
-    errno: tOptional(tInt),
-    syscall: tOptional(tString),
-    address: tOptional(tString),
-    port: tOptional(tInt),
-    hostname: tOptional(tString),
   })),
   value: tOptional(tType('SerializedValue')),
 });
@@ -3122,6 +3125,15 @@ scheme.VirtualCredential = tObject({
   userHandle: tString,
   privateKey: tString,
   publicKey: tString,
+  signCount: tInt,
+});
+scheme.SetVirtualCredential = tObject({
+  id: tString,
+  rpId: tString,
+  userHandle: tString,
+  privateKey: tString,
+  publicKey: tString,
+  signCount: tOptional(tInt),
 });
 scheme.Point = tObject({
   x: tFloat,

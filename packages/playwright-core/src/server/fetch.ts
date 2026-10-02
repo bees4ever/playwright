@@ -30,6 +30,7 @@ import { getUserAgent } from './userAgent';
 import { BrowserContext, findMatchingHttpCredentials, verifyClientCertificates } from './browserContext';
 import { Cookie, CookieStore, domainMatches, parseRawCookie } from './cookieStore';
 import { MultipartFormData } from './formData';
+import { cookieMatchesClearFilter, filterCookies, rewriteCookies } from './network';
 import { TargetClosedError } from './errors';
 import { SdkObject } from './instrumentation';
 import { isAbortError } from './progress';
@@ -40,6 +41,7 @@ import type net from 'net';
 
 import type { Playwright } from './playwright';
 import type { Progress } from './progress';
+import type { ClearCookiesOptions } from './network';
 import type * as types from './types';
 import type { HeadersArray, ProxySettings } from './types';
 import type { HttpCredentials } from '@protocol/structs';
@@ -153,8 +155,9 @@ export abstract class APIRequestContext extends SdkObject {
   abstract dispose(options: { reason?: string }): Promise<void>;
 
   abstract _defaultOptions(): FetchRequestOptions;
-  abstract addCookies(cookies: channels.NetworkCookie[]): Promise<void>;
-  abstract cookies(progress: Progress, url: URL): Promise<channels.NetworkCookie[]>;
+  abstract addCookies(cookies: channels.SetNetworkCookie[]): Promise<void>;
+  abstract cookies(progress: Progress, urls: string[]): Promise<channels.NetworkCookie[]>;
+  abstract clearCookies(options: ClearCookiesOptions): Promise<void>;
 
   protected _disposeImpl() {
     this._disposed = true;
@@ -284,7 +287,7 @@ export abstract class APIRequestContext extends SdkObject {
   private async _updateRequestCookieHeader(progress: Progress, url: URL, headers: HeadersObject) {
     if (getHeader(headers, 'cookie') !== undefined)
       return;
-    const contextCookies = await this.cookies(progress, url);
+    const contextCookies = await this.cookies(progress, [url.toString()]);
     // Browser context returns cookies with domain matching both .example.com and
     // example.com. Those without leading dot are only sent when domain is strictly
     // matching example.com, but not for sub.example.com.
@@ -728,12 +731,16 @@ export class BrowserContextAPIRequestContext extends APIRequestContext {
     };
   }
 
-  async addCookies(cookies: channels.NetworkCookie[]): Promise<void> {
+  async addCookies(cookies: channels.SetNetworkCookie[]): Promise<void> {
     await this._context.addCookies(cookies);
   }
 
-  async cookies(progress: Progress, url: URL): Promise<channels.NetworkCookie[]> {
-    return await this._context.cookies(progress, url.toString());
+  async cookies(progress: Progress, urls: string[]): Promise<channels.NetworkCookie[]> {
+    return await this._context.cookies(progress, urls);
+  }
+
+  async clearCookies(options: ClearCookiesOptions): Promise<void> {
+    await this._context.clearCookies(options);
   }
 
   override async storageState(progress: Progress, params: { indexedDB?: boolean, opfs?: boolean }): Promise<channels.APIRequestContextStorageStateResult> {
@@ -784,12 +791,24 @@ export class GlobalAPIRequestContext extends APIRequestContext {
     return this._options;
   }
 
-  async addCookies(cookies: channels.NetworkCookie[]): Promise<void> {
-    this._cookieStore.addCookies(cookies);
+  async addCookies(cookies: channels.SetNetworkCookie[]): Promise<void> {
+    this._cookieStore.addCookies(rewriteCookies(cookies).map(c => ({
+      expires: -1,
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Lax',
+      ...c,
+      domain: c.domain!,
+      path: c.path!,
+    })));
   }
 
-  async cookies(progress: Progress, url: URL): Promise<channels.NetworkCookie[]> {
-    return this._cookieStore.cookies(url);
+  async cookies(progress: Progress, urls: string[]): Promise<channels.NetworkCookie[]> {
+    return filterCookies(this._cookieStore.allCookies(), urls);
+  }
+
+  async clearCookies(options: ClearCookiesOptions): Promise<void> {
+    this._cookieStore.removeCookies(cookie => cookieMatchesClearFilter(cookie, options));
   }
 
   override async storageState(progress: Progress, { indexedDB = false, opfs = false }: { indexedDB?: boolean, opfs?: boolean }): Promise<channels.APIRequestContextStorageStateResult> {

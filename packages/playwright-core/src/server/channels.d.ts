@@ -18,8 +18,8 @@
 
 import type { Progress } from './progress';
 
-import type { Binary, Channel, AndroidWebView, AndroidSelector, AndroidElementInfo, APIResponse, Metadata, ClientSideCallMetadata, SDKLanguage, WaitInfo, HttpCredentials, SetNetworkCookie, NetworkCookie, ResourceTiming, SecurityDetails, RequestSizes, RemoteAddr, ExpectedTextValue, SelectorEngine, FormField, LifecycleEvent, ConsoleMessagesFilter, RecorderSource, IndexedDBDatabase, OPFSEntry, SetOriginStorage, OriginStorage, RecordHarOptions, SerializedValue, SerializedArgument, SerializedError, StackFrame, VirtualCredential, Point, Rect, URLPattern, NameValue } from '@protocol/structs';
-export type { Binary, Channel, AndroidWebView, AndroidSelector, AndroidElementInfo, APIResponse, Metadata, ClientSideCallMetadata, SDKLanguage, WaitInfo, HttpCredentials, SetNetworkCookie, NetworkCookie, ResourceTiming, SecurityDetails, RequestSizes, RemoteAddr, ExpectedTextValue, SelectorEngine, FormField, LifecycleEvent, ConsoleMessagesFilter, RecorderSource, IndexedDBDatabase, OPFSEntry, SetOriginStorage, OriginStorage, RecordHarOptions, SerializedValue, SerializedArgument, SerializedError, StackFrame, VirtualCredential, Point, Rect, URLPattern, NameValue } from '@protocol/structs';
+import type { Binary, Channel, AndroidWebView, AndroidSelector, AndroidElementInfo, APIResponse, Metadata, ClientSideCallMetadata, SDKLanguage, WaitInfo, HttpCredentials, SetNetworkCookie, NetworkCookie, ResourceTiming, SecurityDetails, RequestSizes, RemoteAddr, ExpectedTextValue, SelectorEngine, FormField, LifecycleEvent, ConsoleMessagesFilter, RecorderSource, IndexedDBDatabase, OPFSEntry, SetOriginStorage, OriginStorage, RecordHarOptions, SerializedValue, SerializedArgument, SerializedError, StackFrame, VirtualCredential, SetVirtualCredential, Point, Rect, URLPattern, NameValue } from '@protocol/structs';
+export type { Binary, Channel, AndroidWebView, AndroidSelector, AndroidElementInfo, APIResponse, Metadata, ClientSideCallMetadata, SDKLanguage, WaitInfo, HttpCredentials, SetNetworkCookie, NetworkCookie, ResourceTiming, SecurityDetails, RequestSizes, RemoteAddr, ExpectedTextValue, SelectorEngine, FormField, LifecycleEvent, ConsoleMessagesFilter, RecorderSource, IndexedDBDatabase, OPFSEntry, SetOriginStorage, OriginStorage, RecordHarOptions, SerializedValue, SerializedArgument, SerializedError, StackFrame, VirtualCredential, SetVirtualCredential, Point, Rect, URLPattern, NameValue } from '@protocol/structs';
 
 // ----------- Initializer Traits -----------
 export type InitializerTraits<T> =
@@ -590,6 +590,9 @@ export interface APIRequestContextChannel extends APIRequestContextEventTarget, 
   fetch(params: APIRequestContextFetchParams, progress: Progress): Promise<APIRequestContextFetchResult>;
   fetchResponseBody(params: APIRequestContextFetchResponseBodyParams, progress: Progress): Promise<APIRequestContextFetchResponseBodyResult>;
   fetchLog(params: APIRequestContextFetchLogParams, progress: Progress): Promise<APIRequestContextFetchLogResult>;
+  addCookies(params: APIRequestContextAddCookiesParams, progress: Progress): Promise<APIRequestContextAddCookiesResult>;
+  clearCookies(params: APIRequestContextClearCookiesParams, progress: Progress): Promise<APIRequestContextClearCookiesResult>;
+  cookies(params: APIRequestContextCookiesParams, progress: Progress): Promise<APIRequestContextCookiesResult>;
   storageState(params: APIRequestContextStorageStateParams, progress: Progress): Promise<APIRequestContextStorageStateResult>;
   disposeAPIResponse(params: APIRequestContextDisposeAPIResponseParams, progress: Progress): Promise<APIRequestContextDisposeAPIResponseResult>;
   dispose(params: APIRequestContextDisposeParams, progress: Progress): Promise<APIRequestContextDisposeResult>;
@@ -643,6 +646,45 @@ export type APIRequestContextFetchLogOptions = {
 };
 export type APIRequestContextFetchLogResult = {
   log: string[],
+};
+export type APIRequestContextAddCookiesParams = {
+  cookies: SetNetworkCookie[],
+};
+export type APIRequestContextAddCookiesOptions = {
+
+};
+export type APIRequestContextAddCookiesResult = void;
+export type APIRequestContextClearCookiesParams = {
+  name?: string,
+  nameRegexSource?: string,
+  nameRegexFlags?: string,
+  domain?: string,
+  domainRegexSource?: string,
+  domainRegexFlags?: string,
+  path?: string,
+  pathRegexSource?: string,
+  pathRegexFlags?: string,
+};
+export type APIRequestContextClearCookiesOptions = {
+  name?: string,
+  nameRegexSource?: string,
+  nameRegexFlags?: string,
+  domain?: string,
+  domainRegexSource?: string,
+  domainRegexFlags?: string,
+  path?: string,
+  pathRegexSource?: string,
+  pathRegexFlags?: string,
+};
+export type APIRequestContextClearCookiesResult = void;
+export type APIRequestContextCookiesParams = {
+  urls: string[],
+};
+export type APIRequestContextCookiesOptions = {
+
+};
+export type APIRequestContextCookiesResult = {
+  cookies: NetworkCookie[],
 };
 export type APIRequestContextStorageStateParams = {
   indexedDB?: boolean,
@@ -911,7 +953,7 @@ export type BrowserNewContextParams = {
   storageState?: {
     cookies?: SetNetworkCookie[],
     origins?: SetOriginStorage[],
-    credentials?: VirtualCredential[],
+    credentials?: SetVirtualCredential[],
   },
 };
 export type BrowserNewContextOptions = {
@@ -988,7 +1030,7 @@ export type BrowserNewContextOptions = {
   storageState?: {
     cookies?: SetNetworkCookie[],
     origins?: SetOriginStorage[],
-    credentials?: VirtualCredential[],
+    credentials?: SetVirtualCredential[],
   },
 };
 export type BrowserNewContextResult = {
@@ -1068,7 +1110,7 @@ export type BrowserNewContextForReuseParams = {
   storageState?: {
     cookies?: SetNetworkCookie[],
     origins?: SetOriginStorage[],
-    credentials?: VirtualCredential[],
+    credentials?: SetVirtualCredential[],
   },
 };
 export type BrowserNewContextForReuseOptions = {
@@ -1145,7 +1187,7 @@ export type BrowserNewContextForReuseOptions = {
   storageState?: {
     cookies?: SetNetworkCookie[],
     origins?: SetOriginStorage[],
-    credentials?: VirtualCredential[],
+    credentials?: SetVirtualCredential[],
   },
 };
 export type BrowserNewContextForReuseResult = {
@@ -1559,14 +1601,14 @@ export type BrowserContextSetStorageStateParams = {
   storageState?: {
     cookies?: SetNetworkCookie[],
     origins?: SetOriginStorage[],
-    credentials?: VirtualCredential[],
+    credentials?: SetVirtualCredential[],
   },
 };
 export type BrowserContextSetStorageStateOptions = {
   storageState?: {
     cookies?: SetNetworkCookie[],
     origins?: SetOriginStorage[],
-    credentials?: VirtualCredential[],
+    credentials?: SetVirtualCredential[],
   },
 };
 export type BrowserContextSetStorageStateResult = void;
@@ -1712,12 +1754,14 @@ export type BrowserContextCredentialsCreateParams = {
   userHandle?: string,
   privateKey?: string,
   publicKey?: string,
+  signCount?: number,
 };
 export type BrowserContextCredentialsCreateOptions = {
   id?: string,
   userHandle?: string,
   privateKey?: string,
   publicKey?: string,
+  signCount?: number,
 };
 export type BrowserContextCredentialsCreateResult = {
   credential: VirtualCredential,
@@ -2337,12 +2381,10 @@ export type FrameEvalOnSelectorParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  world?: 'main' | 'utility',
 };
 export type FrameEvalOnSelectorOptions = {
   strict?: boolean,
   isFunction?: boolean,
-  world?: 'main' | 'utility',
 };
 export type FrameEvalOnSelectorResult = {
   value: SerializedValue,
@@ -2352,11 +2394,9 @@ export type FrameEvalOnSelectorAllParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  world?: 'main' | 'utility',
 };
 export type FrameEvalOnSelectorAllOptions = {
   isFunction?: boolean,
-  world?: 'main' | 'utility',
 };
 export type FrameEvalOnSelectorAllResult = {
   value: SerializedValue,
@@ -2567,13 +2607,9 @@ export type FrameEvaluateExpressionParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  serialize?: ('Map' | 'Set')[],
-  world?: 'main' | 'utility',
 };
 export type FrameEvaluateExpressionOptions = {
   isFunction?: boolean,
-  serialize?: ('Map' | 'Set')[],
-  world?: 'main' | 'utility',
 };
 export type FrameEvaluateExpressionResult = {
   value: SerializedValue,
@@ -2582,11 +2618,9 @@ export type FrameEvaluateExpressionHandleParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  serialize?: ('Map' | 'Set')[],
 };
 export type FrameEvaluateExpressionHandleOptions = {
   isFunction?: boolean,
-  serialize?: ('Map' | 'Set')[],
 };
 export type FrameEvaluateExpressionHandleResult = {
   handle: JSHandleChannel,
@@ -3061,13 +3095,9 @@ export type JSHandleEvaluateExpressionParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  serialize?: ('Map' | 'Set')[],
-  world?: 'main' | 'utility',
 };
 export type JSHandleEvaluateExpressionOptions = {
   isFunction?: boolean,
-  serialize?: ('Map' | 'Set')[],
-  world?: 'main' | 'utility',
 };
 export type JSHandleEvaluateExpressionResult = {
   value: SerializedValue,
@@ -3076,11 +3106,9 @@ export type JSHandleEvaluateExpressionHandleParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  serialize?: ('Map' | 'Set')[],
 };
 export type JSHandleEvaluateExpressionHandleOptions = {
   isFunction?: boolean,
-  serialize?: ('Map' | 'Set')[],
 };
 export type JSHandleEvaluateExpressionHandleResult = {
   handle: JSHandleChannel,
@@ -3161,12 +3189,10 @@ export type ElementHandleEvalOnSelectorParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  world?: 'main' | 'utility',
 };
 export type ElementHandleEvalOnSelectorOptions = {
   strict?: boolean,
   isFunction?: boolean,
-  world?: 'main' | 'utility',
 };
 export type ElementHandleEvalOnSelectorResult = {
   value: SerializedValue,
@@ -3176,11 +3202,9 @@ export type ElementHandleEvalOnSelectorAllParams = {
   expression: string,
   isFunction?: boolean,
   arg: SerializedArgument,
-  world?: 'main' | 'utility',
 };
 export type ElementHandleEvalOnSelectorAllOptions = {
   isFunction?: boolean,
-  world?: 'main' | 'utility',
 };
 export type ElementHandleEvalOnSelectorAllResult = {
   value: SerializedValue,
