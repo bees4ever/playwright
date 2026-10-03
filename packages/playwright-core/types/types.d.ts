@@ -11343,10 +11343,8 @@ export interface Browser {
      * with an exact match to the request origin that the certificate is valid for.
      *
      * Client certificate authentication is only active when at least one client certificate is provided. If you want to
-     * reject all client certificates sent by the server for an origin you visit, set `noCertificate` to `true` for that
-     * origin instead of omitting it: omitting the origin entirely leaves the connection unintercepted, so the server's
-     * own certificate request still reaches the browser and may trigger a native certificate-selection prompt on some
-     * platforms. `noCertificate` forces interception for that origin while still presenting no client certificate.
+     * reject all client certificates sent by the server, you need to provide a client certificate with an `origin` that
+     * does not match any of the domains you plan to visit.
      *
      * **NOTE** When using WebKit on macOS, accessing `localhost` will not pick up client certificates. You can make it
      * work by replacing `localhost` with `local.playwright`.
@@ -11392,11 +11390,6 @@ export interface Browser {
        * Passphrase for the private key (PEM or PFX).
        */
       passphrase?: string;
-
-      /**
-       * Explicitly send no client certificate for this origin. Must be the only field set besides `origin`.
-       */
-      noCertificate?: boolean;
     }>;
 
     /**
@@ -17688,10 +17681,8 @@ export interface BrowserType<Unused = {}> {
      * with an exact match to the request origin that the certificate is valid for.
      *
      * Client certificate authentication is only active when at least one client certificate is provided. If you want to
-     * reject all client certificates sent by the server for an origin you visit, set `noCertificate` to `true` for that
-     * origin instead of omitting it: omitting the origin entirely leaves the connection unintercepted, so the server's
-     * own certificate request still reaches the browser and may trigger a native certificate-selection prompt on some
-     * platforms. `noCertificate` forces interception for that origin while still presenting no client certificate.
+     * reject all client certificates sent by the server, you need to provide a client certificate with an `origin` that
+     * does not match any of the domains you plan to visit.
      *
      * **NOTE** When using WebKit on macOS, accessing `localhost` will not pick up client certificates. You can make it
      * work by replacing `localhost` with `local.playwright`.
@@ -17737,11 +17728,6 @@ export interface BrowserType<Unused = {}> {
        * Passphrase for the private key (PEM or PFX).
        */
       passphrase?: string;
-
-      /**
-       * Explicitly send no client certificate for this origin. Must be the only field set besides `origin`.
-       */
-      noCertificate?: boolean;
     }>;
 
     /**
@@ -19486,10 +19472,8 @@ export interface APIRequest {
      * with an exact match to the request origin that the certificate is valid for.
      *
      * Client certificate authentication is only active when at least one client certificate is provided. If you want to
-     * reject all client certificates sent by the server for an origin you visit, set `noCertificate` to `true` for that
-     * origin instead of omitting it: omitting the origin entirely leaves the connection unintercepted, so the server's
-     * own certificate request still reaches the browser and may trigger a native certificate-selection prompt on some
-     * platforms. `noCertificate` forces interception for that origin while still presenting no client certificate.
+     * reject all client certificates sent by the server, you need to provide a client certificate with an `origin` that
+     * does not match any of the domains you plan to visit.
      *
      * **NOTE** When using WebKit on macOS, accessing `localhost` will not pick up client certificates. You can make it
      * work by replacing `localhost` with `local.playwright`.
@@ -19535,11 +19519,6 @@ export interface APIRequest {
        * Passphrase for the private key (PEM or PFX).
        */
       passphrase?: string;
-
-      /**
-       * Explicitly send no client certificate for this origin. Must be the only field set besides `origin`.
-       */
-      noCertificate?: boolean;
     }>;
 
     /**
@@ -21047,7 +21026,7 @@ export interface Coverage {
    * **NOTE** Anonymous scripts are ones that don't have an associated url. These are scripts that are dynamically
    * created on the page using `eval` or `new Function`. If
    * [`reportAnonymousScripts`](https://playwright.dev/docs/api/class-coverage#coverage-start-js-coverage-option-report-anonymous-scripts)
-   * is set to `true`, anonymous scripts will have `__playwright_evaluation_script__` as their URL.
+   * is set to `true`, anonymous scripts will have an empty string as their URL.
    *
    * @param options
    */
@@ -23835,21 +23814,20 @@ export interface WebError {
 /**
  * [WebMCP](https://playwright.dev/docs/api/class-webmcp) exposes the tools that a frame registers through the
  * experimental [WebMCP](https://playwright.dev/docs/api/class-webmcp) browser API, `navigator.modelContext`. It lists
- * the tools, reports when the set of tools changes, and calls the tools.
+ * the tools and calls them.
  *
  * Instances are accessed through [frame.webmcp](https://playwright.dev/docs/api/class-frame#frame-webmcp).
- * [page.webmcp](https://playwright.dev/docs/api/class-page#page-webmcp) is the instance of the main frame. Call
- * [webMCP.enable()](https://playwright.dev/docs/api/class-webmcp#web-mcp-enable) before using the other methods.
+ * [page.webmcp](https://playwright.dev/docs/api/class-page#page-webmcp) is the instance of the main frame.
  *
  * **NOTE** WebMCP is an experimental browser feature. Chromium enables it with the `--enable-features=WebMCP` launch
- * argument, Firefox with the `dom.modelcontext.enabled` preference. WebKit does not implement it.
+ * argument, Firefox with the `dom.modelcontext.enabled` and `dom.modelcontext.testing.enabled` preferences. WebKit
+ * does not implement it.
  *
  * Tool names, descriptions, input schemas and results are provided by the page, so treat them as untrusted input.
  *
  * ```js
  * const browser = await chromium.launch({ args: ['--enable-features=WebMCP'] });
  * const page = await browser.newPage();
- * await page.webmcp.enable();
  * await page.goto('https://example.com');
  *
  * for (const tool of await page.webmcp.tools())
@@ -23860,273 +23838,6 @@ export interface WebError {
  *
  */
 export interface WebMCP {
-  /**
-   * Emitted while WebMCP is enabled, whenever the set of tools registered by the frame changes, for example when the
-   * page registers or unregisters a tool, or when the frame navigates away. The argument is the new list of tools, the
-   * same one [webMCP.tools([options])](https://playwright.dev/docs/api/class-webmcp#web-mcp-tools) returns.
-   *
-   * ```js
-   * page.webmcp.on('toolschanged', tools => {
-   *   console.log('tools are now', tools.map(tool => tool.name));
-   * });
-   * ```
-   *
-   */
-  on(event: 'toolschanged', listener: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => any): this;
-
-  /**
-   * Adds an event listener that will be automatically removed after it is triggered once. See `addListener` for more information about this event.
-   */
-  once(event: 'toolschanged', listener: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => any): this;
-
-  /**
-   * Emitted while WebMCP is enabled, whenever the set of tools registered by the frame changes, for example when the
-   * page registers or unregisters a tool, or when the frame navigates away. The argument is the new list of tools, the
-   * same one [webMCP.tools([options])](https://playwright.dev/docs/api/class-webmcp#web-mcp-tools) returns.
-   *
-   * ```js
-   * page.webmcp.on('toolschanged', tools => {
-   *   console.log('tools are now', tools.map(tool => tool.name));
-   * });
-   * ```
-   *
-   */
-  addListener(event: 'toolschanged', listener: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  removeListener(event: 'toolschanged', listener: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  off(event: 'toolschanged', listener: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => any): this;
-
-  /**
-   * Emitted while WebMCP is enabled, whenever the set of tools registered by the frame changes, for example when the
-   * page registers or unregisters a tool, or when the frame navigates away. The argument is the new list of tools, the
-   * same one [webMCP.tools([options])](https://playwright.dev/docs/api/class-webmcp#web-mcp-tools) returns.
-   *
-   * ```js
-   * page.webmcp.on('toolschanged', tools => {
-   *   console.log('tools are now', tools.map(tool => tool.name));
-   * });
-   * ```
-   *
-   */
-  prependListener(event: 'toolschanged', listener: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => any): this;
-
   /**
    * Calls a tool registered by the frame and returns its result. The result is whatever the tool's `execute` function
    * resolved to, typically an object with a `content` array. A result with `isError: true` is returned as is. The
@@ -24153,39 +23864,11 @@ export interface WebMCP {
   }): Promise<Serializable>;
 
   /**
-   * Stops tracking the tools that the frame registers and stops emitting
-   * [webMCP.on('toolschanged')](https://playwright.dev/docs/api/class-webmcp#web-mcp-event-tools-changed). Disposing
-   * the [Disposable](https://playwright.dev/docs/api/class-disposable) returned by
-   * [webMCP.enable()](https://playwright.dev/docs/api/class-webmcp#web-mcp-enable) does the same.
-   */
-  disable(): Promise<void>;
-
-  /**
-   * Starts tracking the tools that the frame registers, so that
-   * [webMCP.tools([options])](https://playwright.dev/docs/api/class-webmcp#web-mcp-tools),
-   * [webMCP.callTool(name[, input, options])](https://playwright.dev/docs/api/class-webmcp#web-mcp-call-tool) and
-   * [webMCP.on('toolschanged')](https://playwright.dev/docs/api/class-webmcp#web-mcp-event-tools-changed) work. Throws
-   * if the browser was launched without WebMCP support, see the note above for the launch options that enable it.
-   * Returns a [Disposable](https://playwright.dev/docs/api/class-disposable) that disables the tracking again.
+   * Returns the tools currently registered by the frame. Throws if the browser was launched without WebMCP support, see
+   * the note above for the launch options that enable it.
    *
-   * Tracking is per frame. [page.webmcp](https://playwright.dev/docs/api/class-page#page-webmcp) covers the main frame
-   * only, child frames are tracked through their own
-   * [frame.webmcp](https://playwright.dev/docs/api/class-frame#frame-webmcp).
-   *
-   * Chromium reports tool registrations natively. Firefox does not, so Playwright instruments `navigator.modelContext`
-   * in the page to observe registrations. Tools registered before the call are picked up as well.
-   *
-   * ```js
-   * await page.webmcp.enable();
-   * await page.goto('https://example.com');
-   * console.log(await page.webmcp.tools());
-   * ```
-   *
-   */
-  enable(): Promise<Disposable>;
-
-  /**
-   * Returns the tools currently registered by the frame.
+   * [page.webmcp](https://playwright.dev/docs/api/class-page#page-webmcp) covers the main frame only, child frames list
+   * their tools through their own [frame.webmcp](https://playwright.dev/docs/api/class-frame#frame-webmcp).
    * @param options
    */
   tools(options?: {
@@ -24232,126 +23915,6 @@ export interface WebMCP {
       consequential?: boolean;
     };
   }>>;
-
-  /**
-   * Emitted while WebMCP is enabled, whenever the set of tools registered by the frame changes, for example when the
-   * page registers or unregisters a tool, or when the frame navigates away. The argument is the new list of tools, the
-   * same one [webMCP.tools([options])](https://playwright.dev/docs/api/class-webmcp#web-mcp-tools) returns.
-   *
-   * ```js
-   * page.webmcp.on('toolschanged', tools => {
-   *   console.log('tools are now', tools.map(tool => tool.name));
-   * });
-   * ```
-   *
-   */
-  waitForEvent(event: 'toolschanged', optionsOrPredicate?: { predicate?: (data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => boolean | Promise<boolean>, timeout?: number, signal?: AbortSignal } | ((data: Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>) => boolean | Promise<boolean>)): Promise<Array<{
-    /**
-     * Tool name, unique within the frame.
-     */
-    name: string;
-
-    /**
-     * Tool description.
-     */
-    description: string;
-
-    /**
-     * JSON Schema of the tool input, when the page provides one.
-     */
-    inputSchema?: Serializable;
-
-    /**
-     * Hints the page provides about the tool.
-     */
-    annotations?: {
-      /**
-       * The tool does not modify any state.
-       */
-      readOnly?: boolean;
-
-      /**
-       * The tool output may contain third-party content.
-       */
-      untrustedContent?: boolean;
-
-      /**
-       * The tool takes a consequential action, such as placing an order.
-       */
-      consequential?: boolean;
-    };
-  }>>;
-
 }
 
 /**
@@ -26692,10 +26255,8 @@ export interface BrowserContextOptions {
    * with an exact match to the request origin that the certificate is valid for.
    *
    * Client certificate authentication is only active when at least one client certificate is provided. If you want to
-   * reject all client certificates sent by the server for an origin you visit, set `noCertificate` to `true` for that
-   * origin instead of omitting it: omitting the origin entirely leaves the connection unintercepted, so the server's
-   * own certificate request still reaches the browser and may trigger a native certificate-selection prompt on some
-   * platforms. `noCertificate` forces interception for that origin while still presenting no client certificate.
+   * reject all client certificates sent by the server, you need to provide a client certificate with an `origin` that
+   * does not match any of the domains you plan to visit.
    *
    * **NOTE** When using WebKit on macOS, accessing `localhost` will not pick up client certificates. You can make it
    * work by replacing `localhost` with `local.playwright`.
@@ -26741,11 +26302,6 @@ export interface BrowserContextOptions {
      * Passphrase for the private key (PEM or PFX).
      */
     passphrase?: string;
-
-    /**
-     * Explicitly send no client certificate for this origin. Must be the only field set besides `origin`.
-     */
-    noCertificate?: boolean;
   }>;
 
   /**

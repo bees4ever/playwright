@@ -41,7 +41,6 @@ import * as rawBindingsControllerSource from '../generated/bindingsControllerSou
 import { Overlay } from './overlay';
 import { NonRecoverableDOMError } from './dom';
 import { Screencast } from './screencast';
-import { WebMCPInstrumentation } from './webmcp';
 import { saveGlobalsSnapshotSource } from './javascript';
 
 import type { Artifact } from './artifact';
@@ -96,8 +95,6 @@ export interface PageDelegate {
   pdf?: (options: channels.PagePdfParams) => Promise<Buffer>;
   coverage?: () => any;
   noUtilityWorld?: () => boolean;
-  enableWebMCP?(): Promise<boolean>;
-  callWebMCPTool?(progress: Progress, frame: frames.Frame, name: string, input: unknown): Promise<unknown>;
 
   // Work around WebKit's raf issues on Windows.
   rafCountForStablePosition(): number;
@@ -204,7 +201,6 @@ export class Page extends SdkObject<PageEventMap> {
 
   readonly overlay: Overlay;
   readonly screencast: Screencast;
-  readonly webmcpInstrumentation: WebMCPInstrumentation;
   _closeReason: string | undefined;
   private _customCloseHandler?: (runBeforeUnload: boolean) => Promise<void>;
 
@@ -221,7 +217,6 @@ export class Page extends SdkObject<PageEventMap> {
     this.frameManager = new frames.FrameManager(this);
     this.overlay = new Overlay(this);
     this.screencast = new Screencast(this);
-    this.webmcpInstrumentation = new WebMCPInstrumentation(this);
     if (delegate.pdf)
       this.pdf = delegate.pdf.bind(delegate);
     this.coverage = delegate.coverage ? delegate.coverage() : null;
@@ -247,13 +242,6 @@ export class Page extends SdkObject<PageEventMap> {
       // context/browser closure. Just ignore the page.
       if (this.browserContext.isClosingOrClosed())
         return;
-      if (this._lifecycle === 'crashed' && this.browserContext._skipCrashedPages) {
-        // When connecting, any crashed/discarded/unloaded page is not reported to the client at all.
-        // This is not a default behavior to avoid false positives when a newly created
-        // page is navigating slowly for whatever reason. TODO: fix in chromium upstream.
-        this._initializedPromise.resolve(error);
-        return;
-      }
       this.frameManager.createDummyMainFrameIfNeeded();
     }
     this._initialized = error || this;

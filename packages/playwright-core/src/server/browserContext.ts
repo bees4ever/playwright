@@ -95,7 +95,6 @@ export abstract class BrowserContext<EM extends EventMap = EventMap> extends Sdk
   readonly requestInterceptors: network.RouteHandler[] = [];
   private _isPersistentContext: boolean;
   private _closedStatus: 'open' | 'closing' | 'closed' = 'open';
-  _skipCrashedPages = false;
   readonly _closePromise: Promise<Error>;
   private _closePromiseFulfill: ((error: Error) => void) | undefined;
   readonly _permissions = new Map<string, string[]>();
@@ -798,11 +797,6 @@ export function verifyClientCertificates(clientCertificates?: types.BrowserConte
   for (const cert of clientCertificates) {
     if (!cert.origin)
       throw new Error(`clientCertificates.origin is required`);
-    if (cert.noCertificate) {
-      if (cert.cert || cert.key || cert.passphrase || cert.pfx)
-        throw new Error('noCertificate is set together with cert, key, passphrase or pfx');
-      continue;
-    }
     if (!cert.cert && !cert.key && !cert.passphrase && !cert.pfx)
       throw new Error('None of cert, key, passphrase or pfx is specified');
     if (cert.cert && !cert.key)

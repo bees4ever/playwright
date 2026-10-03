@@ -158,7 +158,6 @@ scheme.AndroidDeviceLaunchBrowserParams = tObject({
     key: tOptional(tBinary),
     passphrase: tOptional(tString),
     pfx: tOptional(tBinary),
-    noCertificate: tOptional(tBoolean),
   }))),
   javaScriptEnabled: tOptional(tBoolean),
   bypassCSP: tOptional(tBoolean),
@@ -469,7 +468,6 @@ scheme.BrowserNewContextParams = tObject({
     key: tOptional(tBinary),
     passphrase: tOptional(tString),
     pfx: tOptional(tBinary),
-    noCertificate: tOptional(tBoolean),
   }))),
   javaScriptEnabled: tOptional(tBoolean),
   bypassCSP: tOptional(tBoolean),
@@ -549,7 +547,6 @@ scheme.BrowserNewContextForReuseParams = tObject({
     key: tOptional(tBinary),
     passphrase: tOptional(tString),
     pfx: tOptional(tBinary),
-    noCertificate: tOptional(tBoolean),
   }))),
   javaScriptEnabled: tOptional(tBoolean),
   bypassCSP: tOptional(tBoolean),
@@ -651,7 +648,6 @@ scheme.BrowserContextInitializer = tObject({
       key: tOptional(tBinary),
       passphrase: tOptional(tString),
       pfx: tOptional(tBinary),
-      noCertificate: tOptional(tBoolean),
     }))),
     javaScriptEnabled: tOptional(tBoolean),
     bypassCSP: tOptional(tBoolean),
@@ -1059,7 +1055,6 @@ scheme.BrowserTypeLaunchPersistentContextParams = tObject({
     key: tOptional(tBinary),
     passphrase: tOptional(tString),
     pfx: tOptional(tBinary),
-    noCertificate: tOptional(tBoolean),
   }))),
   javaScriptEnabled: tOptional(tBoolean),
   bypassCSP: tOptional(tBoolean),
@@ -1267,18 +1262,6 @@ scheme.FrameNavigatedEvent = tObject({
     request: tOptional(tChannel(['Request'])),
   })),
   error: tOptional(tString),
-});
-scheme.FrameWebmcpToolsChangedEvent = tObject({
-  tools: tArray(tObject({
-    name: tString,
-    description: tString,
-    inputSchema: tOptional(tAny),
-    annotations: tOptional(tObject({
-      readOnly: tOptional(tBoolean),
-      untrustedContent: tOptional(tBoolean),
-      consequential: tOptional(tBoolean),
-    })),
-  })),
 });
 scheme.FrameEvalOnSelectorParams = tObject({
   selector: tString,
@@ -1694,10 +1677,6 @@ scheme.FrameExpectErrorDetails = tObject({
   timedOut: tOptional(tBoolean),
   customErrorMessage: tOptional(tString),
 });
-scheme.FrameWebmcpEnableParams = tOptional(tObject({}));
-scheme.FrameWebmcpEnableResult = tOptional(tObject({}));
-scheme.FrameWebmcpDisableParams = tOptional(tObject({}));
-scheme.FrameWebmcpDisableResult = tOptional(tObject({}));
 scheme.FrameWebmcpToolsParams = tOptional(tObject({}));
 scheme.FrameWebmcpToolsResult = tObject({
   tools: tArray(tObject({
@@ -1713,10 +1692,10 @@ scheme.FrameWebmcpToolsResult = tObject({
 });
 scheme.FrameWebmcpCallToolParams = tObject({
   name: tString,
-  input: tOptional(tAny),
+  input: tType('SerializedArgument'),
 });
 scheme.FrameWebmcpCallToolResult = tObject({
-  result: tOptional(tAny),
+  result: tType('SerializedValue'),
 });
 scheme.JSHandleInitializer = tObject({
   preview: tString,
@@ -2783,7 +2762,6 @@ scheme.PlaywrightNewRequestParams = tObject({
     key: tOptional(tBinary),
     passphrase: tOptional(tString),
     pfx: tOptional(tBinary),
-    noCertificate: tOptional(tBoolean),
   }))),
   maxRedirects: tOptional(tInt),
   httpCredentials: tOptional(tArray(tType('HttpCredentials'))),

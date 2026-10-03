@@ -391,7 +391,6 @@ export type AndroidDeviceLaunchBrowserParams = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -465,7 +464,6 @@ export type AndroidDeviceLaunchBrowserOptions = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -896,7 +894,6 @@ export type BrowserNewContextParams = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -973,7 +970,6 @@ export type BrowserNewContextOptions = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -1053,7 +1049,6 @@ export type BrowserNewContextForReuseParams = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -1130,7 +1125,6 @@ export type BrowserNewContextForReuseOptions = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -1249,7 +1243,6 @@ export type BrowserContextInitializer = {
       key?: Binary,
       passphrase?: string,
       pfx?: Binary,
-      noCertificate?: boolean,
     }[],
     javaScriptEnabled?: boolean,
     bypassCSP?: boolean,
@@ -1909,7 +1902,6 @@ export type BrowserTypeLaunchPersistentContextParams = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -1999,7 +1991,6 @@ export type BrowserTypeLaunchPersistentContextOptions = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   javaScriptEnabled?: boolean,
   bypassCSP?: boolean,
@@ -2292,7 +2283,6 @@ export type FrameInitializer = {
 export interface FrameEventTarget {
   _dispatchEvent(event: 'loadstate', params?: FrameLoadstateEvent): void;
   _dispatchEvent(event: 'navigated', params?: FrameNavigatedEvent): void;
-  _dispatchEvent(event: 'webmcpToolsChanged', params?: FrameWebmcpToolsChangedEvent): void;
 }
 export interface FrameChannel extends FrameEventTarget, Channel {
   _type_Frame: boolean;
@@ -2346,8 +2336,6 @@ export interface FrameChannel extends FrameEventTarget, Channel {
   waitForFunction(params: FrameWaitForFunctionParams, progress: Progress): Promise<FrameWaitForFunctionResult>;
   waitForSelector(params: FrameWaitForSelectorParams, progress: Progress): Promise<FrameWaitForSelectorResult>;
   expect(params: FrameExpectParams, progress: Progress): Promise<FrameExpectResult>;
-  webmcpEnable(params: FrameWebmcpEnableParams, progress: Progress): Promise<FrameWebmcpEnableResult>;
-  webmcpDisable(params: FrameWebmcpDisableParams, progress: Progress): Promise<FrameWebmcpDisableResult>;
   webmcpTools(params: FrameWebmcpToolsParams, progress: Progress): Promise<FrameWebmcpToolsResult>;
   webmcpCallTool(params: FrameWebmcpCallToolParams, progress: Progress): Promise<FrameWebmcpCallToolResult>;
 }
@@ -2362,18 +2350,6 @@ export type FrameNavigatedEvent = {
     request?: RequestChannel,
   },
   error?: string,
-};
-export type FrameWebmcpToolsChangedEvent = {
-  tools: {
-    name: string,
-    description: string,
-    inputSchema?: any,
-    annotations?: {
-      readOnly?: boolean,
-      untrustedContent?: boolean,
-      consequential?: boolean,
-    },
-  }[],
 };
 export type FrameEvalOnSelectorParams = {
   selector: string,
@@ -3032,12 +3008,6 @@ export type FrameExpectErrorDetails = {
   timedOut?: boolean,
   customErrorMessage?: string,
 };
-export type FrameWebmcpEnableParams = {};
-export type FrameWebmcpEnableOptions = {};
-export type FrameWebmcpEnableResult = void;
-export type FrameWebmcpDisableParams = {};
-export type FrameWebmcpDisableOptions = {};
-export type FrameWebmcpDisableResult = void;
 export type FrameWebmcpToolsParams = {};
 export type FrameWebmcpToolsOptions = {};
 export type FrameWebmcpToolsResult = {
@@ -3054,19 +3024,18 @@ export type FrameWebmcpToolsResult = {
 };
 export type FrameWebmcpCallToolParams = {
   name: string,
-  input?: any,
+  input: SerializedArgument,
 };
 export type FrameWebmcpCallToolOptions = {
-  input?: any,
+
 };
 export type FrameWebmcpCallToolResult = {
-  result?: any,
+  result: SerializedValue,
 };
 
 export interface FrameEvents {
   'loadstate': FrameLoadstateEvent;
   'navigated': FrameNavigatedEvent;
-  'webmcpToolsChanged': FrameWebmcpToolsChangedEvent;
 }
 
 // ----------- JSHandle -----------
@@ -4805,7 +4774,6 @@ export type PlaywrightNewRequestParams = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   maxRedirects?: number,
   httpCredentials?: HttpCredentials[],
@@ -4833,7 +4801,6 @@ export type PlaywrightNewRequestOptions = {
     key?: Binary,
     passphrase?: string,
     pfx?: Binary,
-    noCertificate?: boolean,
   }[],
   maxRedirects?: number,
   httpCredentials?: HttpCredentials[],
