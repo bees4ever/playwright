@@ -140,6 +140,17 @@ it('clearCookies should filter by name, domain and path', async ({ request }) =>
   expect(await values()).toEqual([]);
 });
 
+it('clearCookies should remove nameless cookies by empty name', {
+  annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43112' },
+}, async ({ request }) => {
+  await request.addCookies([
+    { name: '', value: 'nameless', domain: 'one.com', path: '/' },
+    { name: 'session', value: 'secret', domain: 'one.com', path: '/' },
+  ]);
+  await request.clearCookies({ name: '' });
+  expect((await request.cookies()).map(c => c.name)).toEqual(['session']);
+});
+
 it('should filter outgoing cookies by path', async ({ request, server }) => {
   server.setRoute('/setcookie.html', (req, res) => {
     res.setHeader('Set-Cookie', ['a=v; path=/input/subfolder', 'b=v; path=/input', 'c=v;']);
@@ -237,6 +248,23 @@ it('should send secure cookie over http for subdomains of localhost', async ({ r
   ]);
   expect(serverRequest.headers.cookie).toBe('a=v; b=v');
 });
+
+for (const host of ['127.0.0.1', '[::1]']) {
+  it(`should send secure cookie over http for ${host}`, { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43115' } }, async ({ request, server }) => {
+    server.setRoute('/setcookie.html', (req, res) => {
+      res.setHeader('Set-Cookie', ['a=v; secure', 'b=v']);
+      res.end();
+    });
+    const prefix = `http://${host}:${server.PORT}`;
+    await request.get(`${prefix}/setcookie.html`);
+    const [serverRequest] = await Promise.all([
+      server.waitForRequest('/empty.html'),
+      request.get(`${prefix}/empty.html`)
+    ]);
+    expect(serverRequest.headers.cookie).toBe('a=v; b=v');
+    expect((await request.cookies(`${prefix}/`)).map(c => c.name)).toEqual(['a', 'b']);
+  });
+}
 
 it('should send not expired cookies', async ({ request, server }) => {
   server.setRoute('/setcookie.html', (req, res) => {

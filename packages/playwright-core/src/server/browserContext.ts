@@ -171,7 +171,7 @@ export abstract class BrowserContext<EM extends EventMap = EventMap> extends Sdk
       await this._exposeConsoleApi();
 
     if (this._options.serviceWorkers === 'block')
-      await this.addInitScript(nullProgress, `\nif (navigator.serviceWorker) navigator.serviceWorker.register = async () => { console.warn('Service Worker registration blocked by Playwright'); };\n`);
+      await this.addInitScript(nullProgress, `\nif (self.ServiceWorkerContainer) ServiceWorkerContainer.prototype.register = async () => { console.warn('Service Worker registration blocked by Playwright'); };\n`);
 
     if (this._options.permissions)
       await this.grantPermissions(this._options.permissions);
@@ -322,9 +322,9 @@ export abstract class BrowserContext<EM extends EventMap = EventMap> extends Sdk
     if (!cookiesToExpire.length)
       return;
 
+    // Keep the original value: browsers reject or ignore cookies with both empty name and value.
     await this.addCookies(cookiesToExpire.map(cookie => ({
       ...cookie,
-      value: '',
       expires: 0,
     })));
   }

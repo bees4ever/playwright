@@ -54,8 +54,9 @@ export function filterCookies(cookies: channels.NetworkCookie[], urls: string[])
   });
 }
 
+// Mirrors Chromium's net::IsLocalhost(): localhost, *.localhost, 127.0.0.0/8 and [::1].
 export function isLocalHostname(hostname: string): boolean {
-  return hostname === 'localhost' || hostname.endsWith('.localhost');
+  return hostname === 'localhost' || hostname.endsWith('.localhost') || hostname === '[::1]' || /^127\.\d+\.\d+\.\d+$/.test(hostname);
 }
 
 // Forbidden request headers according to https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
@@ -127,7 +128,7 @@ export function hasClearCookiesFilter(options: ClearCookiesOptions): boolean {
 
 export function cookieMatchesClearFilter(cookie: channels.NetworkCookie, options: ClearCookiesOptions): boolean {
   const matches = (prop: 'name' | 'domain' | 'path', value: string | RegExp | undefined) => {
-    if (!value)
+    if (value === undefined)
       return true;
     if (value instanceof RegExp) {
       value.lastIndex = 0;
