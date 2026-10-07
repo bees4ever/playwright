@@ -636,6 +636,25 @@ it('parseLocator nested and, or, locator', {
   });
 });
 
+it('parseLocator within', {
+  annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43159' }
+}, async () => {
+  const selector = `internal:role=row >> internal:chain="internal:role=cell >> nth=2"`;
+  expect.soft(parseLocator('javascript', `getByRole('cell').nth(2).within(getByRole('row'))`)).toBe(selector);
+  expect.soft(parseLocator('python', `get_by_role("cell").nth(2).within(get_by_role("row"))`)).toBe(selector);
+  expect.soft(parseLocator('java', `getByRole(AriaRole.CELL).nth(2).within(getByRole(AriaRole.ROW))`)).toBe(selector);
+  expect.soft(parseLocator('csharp', `GetByRole(AriaRole.Cell).Nth(2).Within(GetByRole(AriaRole.Row))`)).toBe(selector);
+});
+
+it('parseLocator getByRef', {
+  annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43159' }
+}, async () => {
+  expect.soft(parseLocator('javascript', `getByRef('e5')`)).toBe('aria-ref=e5');
+  expect.soft(parseLocator('python', `get_by_ref("e5")`)).toBe('aria-ref=e5');
+  expect.soft(parseLocator('java', `getByRef("e5")`)).toBe('aria-ref=e5');
+  expect.soft(parseLocator('csharp', `GetByRef("e5")`)).toBe('aria-ref=e5');
+});
+
 it('asLocator xpath', async () => {
   const selector = `//*[contains(normalizer-text(), 'foo']`;
   expect.soft(asLocator('javascript', selector)).toBe(`locator('//*[contains(normalizer-text(), \\'foo\\']')`);
@@ -693,6 +712,15 @@ it('parseLocator options', async () => {
 it('parseLocator role options', async () => {
   expect.soft(parseLocator('python', `get_by_role("checkbox", checked=True, include_hidden=True)`, '')).toBe(`internal:role=checkbox[checked=true][include-hidden=true]`);
   expect.soft(parseLocator('javascript', `getByRole('button', { nme: 'foo' })`, '')).toBe(``);
+});
+
+it('parseLocator round-trips mixed role options', {
+  annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43158' }
+}, async () => {
+  for (const selector of ['internal:role=checkbox[checked=mixed]', 'internal:role=button[pressed=mixed]']) {
+    for (const lang of ['javascript', 'python', 'java', 'csharp'] as const)
+      expect.soft(parseLocator(lang, asLocator(lang, selector), 'data-testid'), `${lang}: ${selector}`).toBe(selector);
+  }
 });
 
 it('parseLocator round-trips selectors', async () => {
@@ -768,6 +796,12 @@ it('reverse engineer regex flags', async () => {
   });
 });
 
+it('parse javascript string escapes and regex literals', () => {
+  expect.soft(parseLocator('javascript', String.raw`getByText("\x41")`)).toBe('internal:text="A"i');
+  expect.soft(parseLocator('javascript', String.raw`getByText("\u{1F600}")`)).toBe('internal:text="\u{1F600}"i');
+  expect.soft(parseLocator('javascript', 'getByText(/[/]/)')).toBe('internal:text=/[/]/');
+});
+
 it('parseLocator rejects malformed locators', async () => {
   const locators = [
     ['javascript', `locator('div').nth(0))`],
@@ -777,6 +811,9 @@ it('parseLocator rejects malformed locators', async () => {
     ['javascript', `getByRole('button', { name: 'ok', exct: true })`],
     ['javascript', `getByText('foo', { exact: 'true' })`],
     ['javascript', `locator('div').filter({ hasText: 'foo' }})`],
+    ['javascript', String.raw`getByText("\x4")`],
+    ['javascript', String.raw`getByText("\u{}")`],
+    ['javascript', String.raw`getByText("\u{110000}")`],
     ['python', `get_by_role("checkbox", cheked=True)`],
     ['python', `locator("div").filter(has_text=="foo")`],
     ['python', `locator("div").nth(0))`],
@@ -874,4 +911,20 @@ it('asLocatorDescription invalid input', async () => {
   expect.soft(asLocatorDescription('javascript', `body >> internal:describe=12`)).toBe(`locator('body')`);
   expect.soft(asLocatorDescription('javascript', `following-sibling::*[1]`)).toBe(`following-sibling::*[1]`);
   expect.soft(asLocatorDescription('javascript', `body >> internal:describe="desc" >> div`)).toBe(`locator('body').locator('div')`);
+});
+
+it('resolveSelector returns locatorCode for sdkLanguage', async ({ page }) => {
+  await page.setContent(`<button id="submit">Submit</button>`);
+  expect(await page.ariaSnapshot({ mode: 'ai' })).toContain(`button "Submit" [ref=e2]`);
+  const channel = (page.mainFrame() as any)._channel;
+  const selector = 'aria-ref=e2';
+
+  const noLanguage = await channel.resolveSelector({ selector });
+  expect(noLanguage.resolvedSelector).toBe(`internal:role=button[name="Submit"i]`);
+  expect(noLanguage.locatorCode).toBe(undefined);
+
+  expect((await channel.resolveSelector({ selector, sdkLanguage: 'javascript' })).locatorCode).toBe(`getByRole('button', { name: 'Submit' })`);
+  expect((await channel.resolveSelector({ selector, sdkLanguage: 'python' })).locatorCode).toBe(`get_by_role("button", name="Submit")`);
+  expect((await channel.resolveSelector({ selector, sdkLanguage: 'java' })).locatorCode).toBe(`getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Submit"))`);
+  expect((await channel.resolveSelector({ selector, sdkLanguage: 'csharp' })).locatorCode).toBe(`GetByRole(AriaRole.Button, new() { Name = "Submit" })`);
 });

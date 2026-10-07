@@ -46,6 +46,7 @@ type ParserOptions = {
   quotes: string;
   rawStrings?: boolean;
   regexLiterals?: boolean;
+  javascriptEscapes?: boolean;
   booleans?: [string, string];
 };
 
@@ -53,6 +54,9 @@ const kEscapes = new Map([['n', '\n'], ['r', '\r'], ['t', '\t'], ['b', '\b'], ['
 const kIdentifierRegex = /[A-Za-z_$][\w$]*/y;
 const kNumberRegex = /-?\d+(\.\d+)?/y;
 const kRegexFlagsRegex = /[a-z]*/y;
+const kHexEscapeRegex = /[\da-f]{2}/iy;
+const kUnicodeEscapeRegex = /[\da-f]{4}/iy;
+const kUnicodeCodePointEscapeRegex = /\{[\da-f]{1,6}\}/iy;
 
 function tokenize(source: string, options: ParserOptions): Token[] {
   const tokens: Token[] = [];
@@ -67,27 +71,39 @@ function tokenize(source: string, options: ParserOptions): Token[] {
   };
 
   // In raw strings, backslash only escapes the closing quote and is preserved otherwise.
-  const readString = (quote: string, raw: boolean) => {
+  const readString = (quote: string, raw: boolean, regexLiteral = false) => {
     let text = '';
+    let inCharacterClass = false;
     ++pos;
-    while (pos < source.length && source[pos] !== quote) {
+    while (pos < source.length && (source[pos] !== quote || inCharacterClass)) {
       if (source[pos] !== '\\') {
-        text += source[pos++];
+        const char = source[pos++];
+        if (regexLiteral) {
+          if (char === '[')
+            inCharacterClass = true;
+          else if (char === ']')
+            inCharacterClass = false;
+        }
+        text += char;
         continue;
       }
       const next = source[pos + 1] ?? '';
       pos += 2;
       if (raw) {
         text += next === quote ? next : '\\' + next;
-      } else if (next === 'u') {
-        text += String.fromCharCode(parseInt(source.substring(pos, pos + 4), 16));
-        pos += 4;
+      } else if (next === 'u' || (options.javascriptEscapes && next === 'x')) {
+        const braced = next === 'u' && !!options.javascriptEscapes && source[pos] === '{';
+        const hex = match(next === 'x' ? kHexEscapeRegex : braced ? kUnicodeCodePointEscapeRegex : kUnicodeEscapeRegex);
+        const codePoint = parseInt((braced ? hex?.slice(1, -1) : hex) || '', 16);
+        if (Number.isNaN(codePoint) || codePoint > 0x10FFFF)
+          throw new Error(`Invalid escape sequence in ${source}`);
+        text += String.fromCodePoint(codePoint);
       } else {
         text += kEscapes.get(next) ?? next;
       }
     }
     if (pos >= source.length)
-      throw new Error(`Unterminated string in ${source}`);
+      throw new Error(`Unterminated ${regexLiteral ? 'regular expression' : 'string'} in ${source}`);
     ++pos;
     return text;
   };
@@ -102,7 +118,7 @@ function tokenize(source: string, options: ParserOptions): Token[] {
     } else if (options.rawStrings && char === 'r' && options.quotes.includes(source[pos + 1])) {
       tokens.push({ kind: 'string', value: readString(source[++pos], true) });
     } else if (options.regexLiterals && char === '/') {
-      const regexSource = readString('/', true);
+      const regexSource = readString('/', true, true);
       tokens.push({ kind: 'regex', value: new RegExp(regexSource, match(kRegexFlagsRegex)) });
     } else if ('(){}.,:=|'.includes(char)) {
       tokens.push({ kind: 'punctuation', value: char });
@@ -154,7 +170,7 @@ abstract class LocatorParser {
   protected abstract parseRegex(): RegExp | undefined;
 
   protected parseLocator(): ParsedSelector {
-    const parts: ParsedSelectorPart[] = [];
+    let parts: ParsedSelectorPart[] = [];
     // FrameLocator enters the frame lazily, so that first(), last() and nth() apply to the frame element.
     let inFrameLocator = false;
     do {
@@ -163,7 +179,11 @@ abstract class LocatorParser {
         parts.push(selectorPart('internal:control', 'enter-frame'));
         inFrameLocator = false;
       }
-      parts.push(...handler(call, this._testIdAttributeName));
+      const callParts = handler(call, this._testIdAttributeName);
+      if (handler === withinParts)
+        parts = [...callParts, nestedSelectorPart('internal:chain', { parts })];
+      else
+        parts.push(...callParts);
       if (handler === contentFrameParts || (handler === frameLocatorParts && call.args.length))
         inFrameLocator = true;
     } while (this.eat('.'));
@@ -295,7 +315,7 @@ abstract class LocatorParser {
 // getByRole('button', { name: /submit/i, exact: true })
 class JavaScriptLocatorParser extends LocatorParser {
   constructor(source: string, testIdAttributeName: string) {
-    super(source, { methods: kJavaScriptMethods, quotes: '\'"`', regexLiterals: true }, testIdAttributeName);
+    super(source, { methods: kJavaScriptMethods, quotes: '\'"`', regexLiterals: true, javascriptEscapes: true }, testIdAttributeName);
   }
 
   protected parseArgument(call: CallArguments) {
@@ -421,6 +441,11 @@ function filterParts(call: CallArguments): ParsedSelectorPart[] {
   return filterSelectorParts(call);
 }
 
+function withinParts(call: CallArguments): ParsedSelectorPart[] {
+  checkArguments(call, 1, []);
+  return arg(call, 0, isSelector).parts;
+}
+
 function nestedParts(name: string): CallHandler {
   return call => {
     checkArguments(call, 1, []);
@@ -461,6 +486,11 @@ function getByTestIdParts(call: CallArguments, testIdAttributeName: string): Par
   return parseSelector(getByTestIdSelector(testIdAttributeName, arg(call, 0, isText))).parts;
 }
 
+function getByRefParts(call: CallArguments): ParsedSelectorPart[] {
+  checkArguments(call, 1, []);
+  return [selectorPart('aria-ref', arg(call, 0, isString))];
+}
+
 function textParts(toSelector: (text: string | RegExp, options: { exact?: boolean }) => string): CallHandler {
   return call => {
     checkArguments(call, 1, ['exact']);
@@ -484,6 +514,7 @@ const kFrameElementHandlers = new Set<CallHandler>([firstParts, lastParts, nthPa
 const kJavaScriptMethods = new Map<string, CallHandler>([
   ['locator', locatorParts],
   ['filter', filterParts],
+  ['within', withinParts],
   ['and', andParts],
   ['or', orParts],
   ['frameLocator', frameLocatorParts],
@@ -496,6 +527,7 @@ const kJavaScriptMethods = new Map<string, CallHandler>([
   ['getByText', getByTextParts],
   ['getByLabel', getByLabelParts],
   ['getByTestId', getByTestIdParts],
+  ['getByRef', getByRefParts],
   ['getByAltText', getByAltTextParts],
   ['getByPlaceholder', getByPlaceholderParts],
   ['getByTitle', getByTitleParts],
@@ -504,6 +536,7 @@ const kJavaScriptMethods = new Map<string, CallHandler>([
 const kPythonMethods = new Map<string, CallHandler>([
   ['locator', locatorParts],
   ['filter', filterParts],
+  ['within', withinParts],
   ['and_', andParts],
   ['or_', orParts],
   ['frame_locator', frameLocatorParts],
@@ -516,6 +549,7 @@ const kPythonMethods = new Map<string, CallHandler>([
   ['get_by_text', getByTextParts],
   ['get_by_label', getByLabelParts],
   ['get_by_test_id', getByTestIdParts],
+  ['get_by_ref', getByRefParts],
   ['get_by_alt_text', getByAltTextParts],
   ['get_by_placeholder', getByPlaceholderParts],
   ['get_by_title', getByTitleParts],
@@ -524,6 +558,7 @@ const kPythonMethods = new Map<string, CallHandler>([
 const kCSharpMethods = new Map<string, CallHandler>([
   ['Locator', locatorParts],
   ['Filter', filterParts],
+  ['Within', withinParts],
   ['And', andParts],
   ['Or', orParts],
   ['FrameLocator', frameLocatorParts],
@@ -536,6 +571,7 @@ const kCSharpMethods = new Map<string, CallHandler>([
   ['GetByText', getByTextParts],
   ['GetByLabel', getByLabelParts],
   ['GetByTestId', getByTestIdParts],
+  ['GetByRef', getByRefParts],
   ['GetByAltText', getByAltTextParts],
   ['GetByPlaceholder', getByPlaceholderParts],
   ['GetByTitle', getByTitleParts],
@@ -570,6 +606,8 @@ function getByRoleParts(call: CallArguments): ParsedSelectorPart[] {
       body += `[${name}=${escapeForAttributeSelector(option(call, name, isText)!, exact)}]`;
     else if (name === 'level')
       body += `[level=${option(call, name, isNumber)}]`;
+    else if (name === 'checked' || name === 'pressed')
+      body += `[${name}=${option(call, name, isBooleanOrMixed)}]`;
     else if (name !== 'exact')
       body += `[${name === 'includeHidden' ? 'include-hidden' : name}=${option(call, name, isBoolean)}]`;
   }
@@ -625,6 +663,10 @@ function isNumber(value: Value): value is number {
 
 function isBoolean(value: Value): value is boolean {
   return typeof value === 'boolean';
+}
+
+function isBooleanOrMixed(value: Value): value is boolean | 'mixed' {
+  return isBoolean(value) || value === 'mixed';
 }
 
 function isSelector(value: Value): value is ParsedSelector {
