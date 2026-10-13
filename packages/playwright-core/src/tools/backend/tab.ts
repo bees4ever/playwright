@@ -333,10 +333,9 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   }
 
   async checkUrlAndNavigate(url: string): Promise<string> {
-    try {
-      new URL(url);
-    } catch (e) {
-      if (url.startsWith('localhost'))
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url) || /^(about|data|blob|javascript):/i.test(url);
+    if (!hasScheme) {
+      if (url.startsWith('localhost') || url.startsWith('127.0.0.1') || url.startsWith('0.0.0.0') || url.startsWith('[::1]'))
         url = 'http://' + url;
       else
         url = 'https://' + url;
@@ -384,6 +383,21 @@ export class Tab extends EventEmitter<TabEventsInterface> {
       await this.page.reload(this.navigationTimeoutOptions);
     });
   }
+
+  async goBack() {
+    await this._initializedPromise;
+    await this._raceAgainstModalStates(async () => {
+      await this.page.goBack({ waitUntil: 'commit', ...this.navigationTimeoutOptions });
+    });
+  }
+
+  async goForward() {
+    await this._initializedPromise;
+    await this._raceAgainstModalStates(async () => {
+      await this.page.goForward({ waitUntil: 'commit', ...this.navigationTimeoutOptions });
+    });
+  }
+
 
   async consoleMessageCount(): Promise<{ total: number, errors: number, warnings: number }> {
     await this._initializedPromise;
