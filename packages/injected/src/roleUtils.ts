@@ -447,7 +447,8 @@ function getIdRefs(element: Element, ref: string | null): Element[] {
   if (!root)
     return [];
   try {
-    const ids = ref.split(' ').filter(id => !!id);
+    // ID reference lists are separated by ASCII whitespace, which does not include e.g. &nbsp;.
+    const ids = ref.split(/[ \t\n\f\r]+/).filter(id => !!id);
     const result: Element[] = [];
     for (const id of ids) {
       // https://www.w3.org/TR/wai-aria-1.2/#mapping_additional_relations_error_processing
@@ -1071,7 +1072,9 @@ function getTextAlternativeInternal(element: Element, options: AccessibleNameOpt
       if (options.outDerivedFromContent && insideTargetElement(options) && trimFlatString(accessibleName.text))
         options.outDerivedFromContent.value = true;
       // This element owns the accumulated content - record it alongside the descendants it was computed from.
-      accessibleName.elements?.add(element);
+      // Whitespace alone is not content, e.g. the spacing around an inline-block icon.
+      if (trimFlatString(accessibleName.text))
+        accessibleName.elements?.add(element);
       return accessibleName;
     }
   }
