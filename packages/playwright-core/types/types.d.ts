@@ -5685,6 +5685,9 @@ export interface Page {
    * ```
    *
    * @param urlOrPredicate Request URL string, regex or predicate receiving [Request](https://playwright.dev/docs/api/class-request) object.
+   * When a [`baseURL`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-base-url) via the
+   * context options was provided and the passed URL is a path, it gets merged via the
+   * [`new URL()`](https://developer.mozilla.org/en-US/docs/Web/API/URL/URL) constructor.
    * @param options
    */
   waitForRequest(urlOrPredicate: string|RegExp|((request: Request) => boolean|Promise<boolean>), options?: {
@@ -5875,10 +5878,11 @@ export interface Page {
    * **Usage**
    *
    * ```js
-   * page.screencast.on('screencastFrame', data => {
-   *   console.log('received frame, jpeg size:', data.length);
+   * await page.screencast.start({
+   *   onFrame: ({ data }) => {
+   *     console.log('received frame, jpeg size:', data.length);
+   *   },
    * });
-   * await page.screencast.start();
    * // ... perform actions ...
    * await page.screencast.stop();
    * ```
@@ -8417,7 +8421,7 @@ export interface Frame {
    * frame.selectOption('select#colors', { label: 'Blue' });
    *
    * // multiple selection
-   * frame.selectOption('select#colors', 'red', 'green', 'blue');
+   * frame.selectOption('select#colors', ['red', 'green', 'blue']);
    * ```
    *
    * @param selector A selector to query for.
@@ -10524,13 +10528,13 @@ export interface BrowserContext {
    * [WebSocketRoute](https://playwright.dev/docs/api/class-websocketroute) for more details and examples.
    *
    * ```js
-   * await context.routeWebSocket('/ws', async ws => {
-   *   ws.routeSend(message => {
+   * await context.routeWebSocket('/ws', ws => {
+   *   const server = ws.connectToServer();
+   *   ws.onMessage(message => {
    *     if (message === 'to-be-blocked')
    *       return;
-   *     ws.send(message);
+   *     server.send(message);
    *   });
-   *   await ws.connect();
    * });
    * ```
    *
@@ -18412,10 +18416,12 @@ export interface CDPSession {
   /**
    * @param method Protocol method name.
    * @param params Optional method parameters.
+   * @param options
    */
   send<T extends keyof Protocol.CommandParameters>(
     method: T,
-    params?: Protocol.CommandParameters[T]
+    params?: Protocol.CommandParameters[T],
+    options?: { timeout?: number, signal?: AbortSignal }
   ): Promise<Protocol.CommandReturnValues[T]>;
   /**
    * Emitted when the session is closed, either because the target was closed or `session.detach()` was called.

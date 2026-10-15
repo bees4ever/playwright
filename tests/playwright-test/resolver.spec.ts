@@ -19,6 +19,8 @@ import path from 'path';
 
 import { test, expect } from './playwright-test-fixtures';
 
+test.skip(!!process.env.PW_BUN, 'bun resolves modules and tsconfig itself');
+
 test('should print tsconfig parsing error', async ({ runInlineTest }) => {
   const files = {
     'a.spec.ts': `
@@ -450,7 +452,7 @@ test('should respect path resolver for JS files when allowJs', async ({ runInlin
       });
     `,
     'foo/bar/util/b.ts': `
-      module.exports = { foo: 'foo' };
+      export const foo = 'foo';
     `,
   });
 
@@ -477,7 +479,7 @@ test('should not respect path resolver for JS files w/o allowJS', async ({ runIn
       });
     `,
     'foo/bar/util/b.ts': `
-      module.exports = { foo: 'foo' };
+      export const foo = 'foo';
     `,
   });
 
@@ -511,7 +513,7 @@ test('should respect path resolver for JS and TS files from jsconfig.json', asyn
       });
     `,
     'foo/bar/util/b.ts': `
-      module.exports = { foo: 'foo' };
+      export const foo = 'foo';
     `,
   });
 
@@ -552,7 +554,7 @@ test('should support extends in tsconfig.json', async ({ runInlineTest }) => {
       });
     `,
     'dir/foo/bar/util/file.ts': `
-      module.exports = { foo: 'foo' };
+      export const foo = 'foo';
     `,
   });
 
@@ -582,7 +584,7 @@ test('should resolve paths relative to the originating config when extending and
       });
     `,
     'mapped/file.ts': `
-      module.exports = { foo: 'foo' };
+      export const foo = 'foo';
     `,
   });
 
