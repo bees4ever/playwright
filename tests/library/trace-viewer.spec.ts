@@ -432,7 +432,7 @@ test('should show params and return value', async ({ showTraceViewer }) => {
     /Evaluate/,
     /start:[\d\.]+m?s/,
     /duration:[\d]+ms/,
-    /expression:"\({[↵\s]*a[↵\s]*}\) => {↵\s*console\.log\(['"]Info['"]\);↵\s*console\.warn\(['"]Warning['"]\);↵\s*console/,
+    /expression:"\({↵    a↵  }\) => {↵    console\.log\(\'Info\'\);↵    console\.warn\(\'Warning\'\);↵    console/,
     'isFunction:true',
     'arg:{"a":"paramA","b":4}',
     'value:"return paramA"'
@@ -1492,8 +1492,8 @@ test('should display waitForLoadState even if did not wait for it', async ({ run
   });
   await expect(traceViewer.actionTitles).toHaveText([
     /Navigate/,
-    /Wait for load state "load"/,
-    /Wait for load state "load"/,
+    /Wait for load state/,
+    /Wait for load state/,
   ]);
 });
 

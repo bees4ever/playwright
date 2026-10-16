@@ -341,6 +341,13 @@ it('should work with overwritten Promise', async ({ page }) => {
 
   // Now, the new promise should be awaitable.
   expect(await page.evaluate(() => Promise.resolve(42))).toBe(42);
+  // No page timers below: the frozen-clock project never fires them.
+  const handle = await page.evaluateHandle(() => new Promise(f => queueMicrotask(() => f(42))));
+  expect(await handle.jsonValue()).toBe(42);
+  const error = await page.waitForFunction(() => false, undefined, { timeout: 500 }).catch(e => e);
+  expect(error.message).toContain('Timeout 500ms exceeded');
+  await page.evaluate(() => (window as any).__done = true);
+  await page.waitForFunction(() => (window as any).__done);
 });
 
 it('should throw when passed more than one parameter', async ({ page }) => {
@@ -482,22 +489,22 @@ it('should throw for too deep reference chain 2', {
 
 it('should throw usable message for unserializable shallow function', async ({ page }) => {
   await expect(() => page.evaluate(arg => arg, () => { }))
-      .rejects.toThrow(/Attempting to serialize unexpected value: \(\) => {\s*}/);
+      .rejects.toThrow(/Attempting to serialize unexpected value: \(\) => {}/);
 });
 
 it('should throw usable message for unserializable object one deep function', async ({ page }) => {
   await expect(() => page.evaluate(arg => arg, { aProperty: () => { } }))
-      .rejects.toThrow(/Attempting to serialize unexpected value at position "aProperty": \(\) => {\s*}/);
+      .rejects.toThrow(/Attempting to serialize unexpected value at position "aProperty": \(\) => {}/);
 });
 
 it('should throw usable message for unserializable object nested function', async ({ page }) => {
   await expect(() => page.evaluate(arg => arg, { a: { inner: { property: () => { } } } }))
-      .rejects.toThrow(/Attempting to serialize unexpected value at position "a\.inner\.property": \(\) => {\s*}/);
+      .rejects.toThrow(/Attempting to serialize unexpected value at position "a\.inner\.property": \(\) => {}/);
 });
 
 it('should throw usable message for unserializable array nested function', async ({ page }) => {
   await expect(() => page.evaluate(arg => arg, { a: { inner: ['firstValue', { property: () => { } }] } }))
-      .rejects.toThrow(/Attempting to serialize unexpected value at position "a\.inner\[1\]\.property": \(\) => {\s*}/);
+      .rejects.toThrow(/Attempting to serialize unexpected value at position "a\.inner\[1\]\.property": \(\) => {}/);
 });
 
 it('should alias Window, Document and Node', async ({ page }) => {

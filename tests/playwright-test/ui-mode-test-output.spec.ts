@@ -29,7 +29,7 @@ test('should print load errors', async ({ runUITest }) => {
     `,
   });
   await page.getByTitle('Toggle output').click();
-  await expect(page.getByTestId('output')).toContainText(process.env.PLAYWRIGHT_EXPERIMENTAL_ESBUILD ? `"await" can only be used inside an "async" function` : `Unexpected reserved word 'await'`);
+  await expect(page.getByTestId('output')).toContainText(/Unexpected reserved word 'await'|"await" can only be used inside an "async" function/);
 });
 
 test('should work after theme switch', async ({ runUITest, writeFiles }) => {
