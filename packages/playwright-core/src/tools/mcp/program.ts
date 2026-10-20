@@ -18,7 +18,7 @@ import { Option as ProgramOption } from 'commander';
 import * as mcpServer from '../utils/mcp/server';
 import { commaSeparatedList, defaultCodegenLanguage, dotenvFileLoader, enumParser, headerParser, numberParser, resolutionParser, resolveCLIConfigForMCP, semicolonSeparatedList } from './config';
 import { setupExitWatchdog } from './watchdog';
-import { connectToBrowserEndpoint, createBrowserWithInfo } from './browserFactory';
+import { connectToBrowserEndpoint, createBrowserWithInfo, createIdleTimer } from './browserFactory';
 import { BrowserBackend } from '../backend/browserBackend';
 import { filteredTools } from '../backend/tools';
 import { testDebug } from './log';
@@ -57,6 +57,7 @@ export function decorateMCPCommand(command: Command) {
       .option('--host <host>', 'host to bind server to. Default is localhost. Use 0.0.0.0 to bind to all interfaces.')
       .option('--idle-timeout <timeout>', 'close the browser after this many milliseconds without a completed tool call, the next tool call relaunches it. Defaults to one hour for headless browsers, never for headed ones, 0 disables.', numberParser)
       .option('--ignore-https-errors', 'ignore https errors')
+      .option('--ignore-roots', 'do not ask the client for its workspace roots, use the current working directory as the workspace root instead. Use this with clients that advertise roots, but can not answer the roots request.')
       .option('--init-page <path...>', 'path to TypeScript file to evaluate on Playwright page object')
       .option('--init-script <path...>', 'path to JavaScript file to add as an initialization script. The script will be evaluated in every page before any of the page\'s scripts. Can be specified multiple times.')
       .option('--isolated', 'keep the browser profile in memory, do not save it to disk.')
@@ -111,6 +112,7 @@ export function decorateMCPCommand(command: Command) {
           nameInConfig: 'playwright',
           version,
           toolSchemas: tools.map(tool => tool.schema),
+          ignoreRoots: config.ignoreRoots,
           create: async (clientInfo: ClientInfo) => {
             if (useSharedBrowser && !sharedBrowserPromise) {
               const promise = createBrowserWithInfo(config, clientInfo, options, { title: clientInfo.clientName, workspaceDir: clientInfo.cwd }).then(shared => {
@@ -160,9 +162,14 @@ export function decorateMCPCommand(command: Command) {
               throw error;
             }
 
+            // Each isolated client owns a context in the shared browser, so it has its own idle timer.
+            // Otherwise an idle client keeps its context open while other clients are active.
+            const clientIdleTimer = shared && config.browser.isolated ? createIdleTimer(config, shared.ownership, () => browserContext.close().catch(() => { })) : undefined;
+
             return new BrowserBackend(config, browserContext, tools, {
-              idleTimer: info.idleTimer,
+              idleTimer: clientIdleTimer ?? info.idleTimer,
               dispose: async () => {
+                clientIdleTimer?.dispose();
                 clientCount--;
                 const last = !shared || !clientCount;
                 if (last && sharedBrowserPromise === promise)

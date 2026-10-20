@@ -74,6 +74,14 @@ type RequestLogEntry = {
 
 type EventEntry = ConsoleLogEntry | DownloadStartLogEntry | DownloadFinishLogEntry | RequestLogEntry;
 
+type RequestEntry = {
+  index: number;
+  request: playwright.Request;
+};
+
+// Avoid unbounded memory growth.
+const kMaxEarlierNavigationRequests = 200;
+
 
 export type TabHeader = {
   title: string;
@@ -100,7 +108,9 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   readonly isolatedContext: string | undefined;
   private _lastHeader: TabHeader = { title: 'about:blank', url: 'about:blank', current: false, crashed: false, console: { total: 0, warnings: 0, errors: 0 } };
   private _downloads: Download[] = [];
-  private _requests: playwright.Request[] = [];
+  private _requests: RequestEntry[] = [];
+  private _lastRequestIndex = 0;
+  private _navigationRequestIndex = 0;
   private _mainDocumentStatus: { status: number, statusText: string } | undefined;
   private _onPageClose: (tab: Tab) => void;
   crashed = false;
@@ -183,7 +193,7 @@ export class Tab extends EventEmitter<TabEventsInterface> {
       this._handleConsoleMessage(message);
     const requests = await this.page.requests().catch(() => []);
     for (const request of requests.filter(r => r.existingResponse() || r.failure()))
-      this._requests.push(request);
+      this._addRequest(request);
     for (const initPage of this.context.config.browser?.initPage || []) {
       try {
         const { default: func } = require(initPage);
@@ -241,7 +251,7 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   private _clearCollectedArtifacts() {
     this._webmcpTools = undefined;
     this._downloads.length = 0;
-    this._requests.length = 0;
+    this._markRequestsNavigation();
     this._mainDocumentStatus = undefined;
     this._recentEventEntries.length = 0;
     this._resetLogs();
@@ -253,8 +263,19 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     this._consoleLog = new LogFile(this.context, wallTime, 'console', 'Console');
   }
 
+  private _addRequest(request: playwright.Request) {
+    this._requests.push({ index: ++this._lastRequestIndex, request });
+  }
+
+  private _markRequestsNavigation() {
+    const earlierRequestCount = this._requests.length;
+    if (earlierRequestCount > kMaxEarlierNavigationRequests)
+      this._requests.splice(0, earlierRequestCount - kMaxEarlierNavigationRequests);
+    this._navigationRequestIndex = this._lastRequestIndex;
+  }
+
   private _handleRequest(request: playwright.Request) {
-    this._requests.push(request);
+    this._addRequest(request);
     // TODO: request start time is not available for fetch() before the
     // response is received, so we use Date.now() as a fallback.
     const wallTime = request.timing().startTime || Date.now();
@@ -399,10 +420,11 @@ export class Tab extends EventEmitter<TabEventsInterface> {
   }
 
 
-  async consoleMessageCount(): Promise<{ total: number, errors: number, warnings: number }> {
+  async consoleMessageCount(all?: boolean): Promise<{ total: number, errors: number, warnings: number }> {
     await this._initializedPromise;
-    const messages = await this.page.consoleMessages({ filter: 'since-navigation' });
-    const pageErrors = await this.page.pageErrors({ filter: 'since-navigation' });
+    const filter = all ? 'all' : 'since-navigation';
+    const messages = await this.page.consoleMessages({ filter });
+    const pageErrors = await this.page.pageErrors({ filter });
     let errors = pageErrors.length;
     let warnings = 0;
     for (const message of messages) {
@@ -439,9 +461,16 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     ]);
   }
 
-  async requests(): Promise<playwright.Request[]> {
+  async requests(all?: boolean): Promise<RequestEntry[]> {
     await this._initializedPromise;
-    return this._requests;
+    if (all)
+      return this._requests;
+    return this._requests.filter(entry => entry.index > this._navigationRequestIndex);
+  }
+
+  async request(index: number): Promise<playwright.Request | undefined> {
+    await this._initializedPromise;
+    return this._requests.find(entry => entry.index === index)?.request;
   }
 
   async clearRequests() {
@@ -555,10 +584,10 @@ export class Tab extends EventEmitter<TabEventsInterface> {
     await this._initializedPromise;
     return Promise.all(params.map(async param => {
       if (!param.target.match(/^(f\d+)?e\d+$/)) {
-        const selector = locatorOrSelectorAsSelector('javascript', param.target, this.context.config.testIdAttribute || 'data-testid');
-        const handle = await this.page.$(selector);
+        const selector = targetAsSelector(param.target, this.context.config.testIdAttribute || 'data-testid');
+        const handle = selector ? await this.page.$(selector) : null;
         if (!handle)
-          throw new Error(`"${param.target}" does not match any elements.`);
+          throw new Error(targetErrorMessage(param.target, !!selector));
         handle.dispose().catch(() => {});
         return { locator: this.page.locator(selector), resolved: asLocator('javascript', selector), selector };
       } else {
@@ -594,6 +623,26 @@ export type ConsoleMessage = {
 
 export function locatorSelector(locator: playwright.Locator): string {
   return (locator as unknown as { _selector: string })._selector;
+}
+
+// Accepts a selector or a locator in any language, e.g. `getByRole('button')` or `get_by_role("button")`.
+function targetAsSelector(target: string, testIdAttributeName: string): string {
+  for (const language of ['javascript', 'python', 'java', 'csharp'] as const) {
+    const selector = locatorOrSelectorAsSelector(language, target, testIdAttributeName);
+    if (selector)
+      return selector;
+  }
+  return '';
+}
+
+function targetErrorMessage(target: string, isSelector: boolean): string {
+  const message = isSelector ? `"${target}" does not match any elements.` : `"${target}" is not a valid target.`;
+  const ref = target.match(/\[ref=((?:f\d+)?e\d+)\]/)?.[1];
+  if (ref)
+    return `${message} To use the element with [ref=${ref}] from the page snapshot, pass "${ref}" as the target.`;
+  if (!isSelector)
+    return `${message} Use a ref from the page snapshot (e.g. "e5"), a CSS selector, or a locator (e.g. "getByRole('button', { name: 'Submit' })").`;
+  return message;
 }
 
 function messageToConsoleMessage(message: playwright.ConsoleMessage): ConsoleMessage {

@@ -26,8 +26,6 @@ subsystem, add a row to the Subsystems table. Then update this file:
 
 ## Subsystems
 
-98 subsystems, 4933 tests (5330 with loop copies).
-
 | Code | Subsystem | Files | Tests |
 |---|---|---|---|
 | `AN` | Android WebViews | `library/unit/android-webviews` | 1 |
@@ -56,7 +54,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `CV` | Coverage | `library/chromium/{js-coverage, css-coverage}`<br>`library/coverage` | 30 |
 | `DB` | Debug | `library/{debugger, debug-controller}` | 22 |
 | `DC` | Default (persistent) context | `library/{defaultbrowsercontext-1, defaultbrowsercontext-2}` | 42 |
-| `DD` | Drag and drop | `page/{page-drag, page-drop}` | 27 |
+| `DD` | Drag and drop | `page/{page-drag, page-drop}` | 28 |
 | `DE` | Dispatch event | `page/page-dispatchevent` | 17 |
 | `DI` | Dialog | `page/page-dialog` | 13 |
 | `DO` | Download | `library/{download, downloads-path}` | 44 |
@@ -78,7 +76,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `FR` | Frame | `page/{frame-evaluate, frame-frame-element, frame-goto, frame-hierarchy}` | 36 |
 | `GE` | Geolocation | `library/geolocation` | 9 |
 | `GN` | Locator and selector generator | `library/{locator-generator, selector-generator}` | 104 |
-| `HA` | HAR | `library/{har, browsercontext-har, har-websocket}` | 112 |
+| `HA` | HAR | `library/{har, browsercontext-har, har-websocket}` | 113 |
 | `HE` | Headful | `library/headful` | 16 |
 | `HT` | Hit target | `library/hit-target` | 22 |
 | `IF` | Input files | `page/page-set-input-files` | 21 |
@@ -1658,6 +1656,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `DD-025` | `page/page-drop.spec.ts` | should drop files and data together |
 | `DD-026` | `page/page-drop.spec.ts` | should throw when target does not accept drop |
 | `DD-027` | `page/page-drop.spec.ts` | should throw when neither files nor data provided |
+| `DD-028` | `page/page-drag.spec.ts` | Drag and drop › should report the default drop effect from effectAllowed |
 
 ### DE — Dispatch event
 
@@ -3157,6 +3156,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `HA-110` | `library/har-websocket.spec.ts` | should still allow routeWebSocket to fully mock the connection when capturing HAR |
 | `HA-111` | `library/har-websocket.spec.ts` | should still allow routeWebSocket to modify messages when capturing HAR |
 | `HA-112` | `library/har-websocket.spec.ts` | should respect PLAYWRIGHT\_HAR\_NO\_WEBSOCKET\_FRAMES |
+| `HA-113` | `library/har.spec.ts` | should store binary content with a textual mime type as base64 |
 
 ### HE — Headful
 
