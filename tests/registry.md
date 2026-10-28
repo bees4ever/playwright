@@ -765,6 +765,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `CD-050` | `library/chromium/session.spec.ts` | should emit close event when session is detached |
 | `CD-051` | `library/chromium/session.spec.ts` | should emit close event when page closes |
 | `CD-052` | `library/chromium/session.spec.ts` | should work with newBrowserCDPSession |
+| `CD-053` | `library/chromium/connect-over-cdp.spec.ts` | should connect when another client inspects a terminated shared worker |
 
 ### CF — Code frame
 
@@ -3157,6 +3158,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `HA-111` | `library/har-websocket.spec.ts` | should still allow routeWebSocket to modify messages when capturing HAR |
 | `HA-112` | `library/har-websocket.spec.ts` | should respect PLAYWRIGHT\_HAR\_NO\_WEBSOCKET\_FRAMES |
 | `HA-113` | `library/har.spec.ts` | should store binary content with a textual mime type as base64 |
+| `HA-114` | `library/browsercontext-har.spec.ts` | should reject a malformed har.zip |
 
 ### HE — Headful
 
@@ -3727,6 +3729,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `MC-017` | `library/multiclient.spec.ts` | screencast should deliver cached last frame to a new client |
 | `MC-018` | `library/multiclient.spec.ts` | should stop tracing upon disconnect |
 | `MC-019` | `library/multiclient.spec.ts` | should not deliver an action buffered before the second recording started |
+| `MC-020` | `library/multiclient.spec.ts` | should run locator handlers after reconnecting with a pending callback |
 
 ### MO — Mouse
 
@@ -3950,7 +3953,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `NE-087` | `page/page-event-network.spec.ts` | Page.Events.RequestFinished @smoke |
 | `NE-088` | `page/page-event-network.spec.ts` | should fire events in proper order |
 | `NE-089` | `page/page-event-network.spec.ts` | should support redirects |
-| `NE-090` | `page/page-event-network.spec.ts` | should resolve responses after a navigation |
+| `NE-090` | `page/page-event-network.spec.ts` | should resolve responses after a cross-process navigation |
 | `NE-091` | `page/page-event-request.spec.ts` | should fire for navigation requests |
 | `NE-092` | `page/page-event-request.spec.ts` | should fire for iframes |
 | `NE-093` | `page/page-event-request.spec.ts` | should fire for fetches |
@@ -4003,6 +4006,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `NE-140` | `library/ignorehttpserrors.spec.ts` | should work with WebSocket |
 | `NE-141` | `library/ignorehttpserrors.spec.ts` | should fail with WebSocket if not ignored |
 | `NE-142` | `library/ignorehttpserrors.spec.ts` | serviceWorker should intercept document request |
+| `NE-143` | `page/page-event-network.spec.ts` | should resolve responses after a same-process navigation |
 
 ### OO — OOPIF
 
@@ -4172,6 +4176,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `PO-026` | `library/popup.spec.ts` | should not dispatch binding on a closed page |
 | `PO-027` | `library/popup.spec.ts` | should not throttle rAF in the opener page |
 | `PO-028` | `library/popup.spec.ts` | should not throw when click closes popup |
+| `PO-029` | `library/popup.spec.ts` | should load subresources of an about:blank popup when the opener has routes |
 
 ### PR — Proxy
 
@@ -5234,6 +5239,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `TV-133` | `library/snapshot-renderer.spec.ts` | snapshot renderer still renders ordinary custom elements |
 | `TV-134` | `library/snapshot-renderer.spec.ts` | stripAnsiEscapes should not exhibit polynomial backtracking |
 | `TV-135` | `library/snapshot-renderer.spec.ts` | stripAnsiEscapes handles common ANSI sequences after fix |
+| `TV-136` | `library/snapshot-renderer.spec.ts` | snapshot renderer selects the nearest out-of-order screencast frame |
 
 ### TZ — Timezone
 
