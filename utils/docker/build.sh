@@ -16,16 +16,26 @@ if [[ ($1 == '--help') || ($1 == '-h') || ($1 == '') || ($2 == '') ]]; then
   exit 0
 fi
 
+BROWSERS_JSON="../../packages/playwright-core/browsers.json"
+
 function cleanup() {
   rm -f "playwright-core.tar.gz"
+  if [[ -f "${BROWSERS_JSON}.bak" ]]; then
+    mv -f "${BROWSERS_JSON}.bak" "${BROWSERS_JSON}"
+  fi
 }
 
 trap "cleanup; cd $(pwd -P)" EXIT
 cd "$(dirname "$0")"
 
 # We rely on `./playwright-core.tar.gz` to download browsers into the docker
-# image.
+# image. The package is packed with the latest Chrome for Testing on the same
+# branch, so that the image ships the latest security fixes.
+cp "${BROWSERS_JSON}" "${BROWSERS_JSON}.bak"
+node ./update-chromium-version.mjs "${BROWSERS_JSON}"
 node ../../utils/pack_package.js playwright-core ./playwright-core.tar.gz
+mv -f "${BROWSERS_JSON}.bak" "${BROWSERS_JSON}"
+PLAYWRIGHT_VERSION=$(node ../../utils/workspace.js --get-version)
 
 PLATFORM=""
 if [[ "$1" == "--arm64" ]]; then
@@ -56,6 +66,7 @@ for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt++)); do
   if docker build --platform "${PLATFORM}" \
       --build-arg ACR_CACHE_PREFIX="${ACR_CACHE_PREFIX}" \
       --build-arg UBUNTU_MIRROR_PREFIX="${UBUNTU_MIRROR_PREFIX}" \
+      --build-arg PLAYWRIGHT_VERSION="${PLAYWRIGHT_VERSION}" \
       "${SECRET_ARGS[@]}" \
       -t "$3" -f "Dockerfile.$2" .; then
     exit 0

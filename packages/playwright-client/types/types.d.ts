@@ -20795,8 +20795,9 @@ export interface Clock {
    * await page.clock.fastForward('30:00');
    * ```
    *
-   * @param ticks Time may be the number of milliseconds to advance the clock by or a human-readable string. Valid string formats are
-   * "08" for eight seconds, "01:00" for one minute and "02:34:10" for two hours, 34 minutes and ten seconds.
+   * @param ticks Time may be a finite number of milliseconds to advance the clock by or a human-readable string. Valid string
+   * formats are "08" for eight seconds, "01:00" for one minute and "02:34:10" for two hours, 34 minutes and ten
+   * seconds.
    */
   fastForward(ticks: number|string): Promise<void>;
 
@@ -20876,8 +20877,9 @@ export interface Clock {
    * await page.clock.runFor('30:00');
    * ```
    *
-   * @param ticks Time may be the number of milliseconds to advance the clock by or a human-readable string. Valid string formats are
-   * "08" for eight seconds, "01:00" for one minute and "02:34:10" for two hours, 34 minutes and ten seconds.
+   * @param ticks Time may be a finite number of milliseconds to advance the clock by or a human-readable string. Valid string
+   * formats are "08" for eight seconds, "01:00" for one minute and "02:34:10" for two hours, 34 minutes and ten
+   * seconds.
    */
   runFor(ticks: number|string): Promise<void>;
 
@@ -26048,9 +26050,9 @@ export interface ConnectOverCDPOptions {
 
   /**
    * When true, Playwright will not apply its default overrides to the existing default browser context. Specifically,
-   * [`acceptDownloads`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-accept-downloads) is
-   * left at the browser's setting, focus emulation is not enabled, and media emulation options (such as
-   * [`colorScheme`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-color-scheme),
+   * [`acceptDownloads`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-accept-downloads) and
+   * font families are left at the browser's settings, focus emulation is not enabled, and media emulation options (such
+   * as [`colorScheme`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-color-scheme),
    * [`reducedMotion`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-reduced-motion),
    * [`forcedColors`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-forced-colors), and
    * [`contrast`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-contrast)) are not applied.
