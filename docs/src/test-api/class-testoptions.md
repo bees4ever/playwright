@@ -451,6 +451,21 @@ export default defineConfig({
 });
 ```
 
+## property: TestOptions.locatorOmitHidden = %%-context-option-locator-omit-hidden-%%
+* since: v1.65
+
+**Usage**
+
+```js title="playwright.config.ts"
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    locatorOmitHidden: true,
+  },
+});
+```
+
 ## property: TestOptions.navigationTimeout
 * since: v1.10
 - type: <[int]>
@@ -706,9 +721,6 @@ export default defineConfig({
     - `aria` ?<[boolean]> Capture aria snapshot of the page on every action. Optional.
     - `screen` ?<[boolean]> Capture a screenshot of the page on every action. Optional.
   - `sources` ?<[boolean]> Whether to include source files for trace actions. Defaults to true. Optional.
-  - `secrets` ?<[Array]<[Object]>> Sensitive values to hide in the trace. Optional.
-    - `name` ?<[string]> Name of the secret. The trace shows `<secret>NAME</secret>` in place of the value, or `<secret/>` when the name is not set. Optional.
-    - `value` <[string]> Sensitive text to hide.
 
 Whether to record trace for each test. Defaults to `'off'`. The initial run of a test is the "first run"; subsequent runs caused by [retries](../test-retries.md) are "retries".
 * `'off'`: Do not record trace.

@@ -16,15 +16,10 @@
 
 type GlobalOptions = {
   browserNameForWorkarounds?: string;
-  skipInertCheck?: boolean;
-  skipDialogCheck?: boolean;
 };
 let globalOptions: GlobalOptions = {};
 export function setGlobalOptions(options: GlobalOptions) {
   globalOptions = options;
-}
-export function getGlobalOptions(): GlobalOptions {
-  return globalOptions;
 }
 
 export function isInsideScope(scope: Node, element: Element | undefined): boolean {
@@ -49,6 +44,17 @@ export function parentElementOrShadowHost(element: Element): Element | undefined
     return;
   if (element.parentNode.nodeType === 11 /* Node.DOCUMENT_FRAGMENT_NODE */ && (element.parentNode as ShadowRoot).host)
     return (element.parentNode as ShadowRoot).host;
+}
+
+// https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees
+// Inert elements cannot be focused, clicked or otherwise interacted with.
+export function isElementInert(element: Element): boolean {
+  // Inert applies to all flat tree descendants, so we look up the hierarchy.
+  for (let e: Element | undefined = element; e; e = parentElementOrShadowHost(e)) {
+    if (e.hasAttribute('inert'))
+      return true;
+  }
+  return false;
 }
 
 export function enclosingShadowRootOrDocument(element: Element): Document | ShadowRoot | undefined {

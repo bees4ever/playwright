@@ -31,7 +31,7 @@ Here is the complete list of actionability checks performed for each action:
 | [`method: Locator.screenshot`] | Yes | Yes | - | - | - | - |
 | [`method: Locator.fill`] | Yes | - | - | Yes | Yes | Yes |
 | [`method: Locator.clear`] | Yes | - | - | Yes | Yes | Yes |
-| [`method: Locator.selectOption`] | Yes | - | - | Yes | - | - |
+| [`method: Locator.selectOption`] | Yes | - | - | Yes | - | Yes |
 | [`method: Locator.selectText`] | Yes | - | - | - | - | - |
 | [`method: Locator.scrollIntoViewIfNeeded`] | - | Yes | - | - | - | - |
 | [`method: Locator.blur`] | - | - | - | - | - | - |
@@ -111,11 +111,10 @@ Element is **readonly** when:
 
 ## Not Inert
 
-Element is considered not inert when it is **not** a part of an inert subtree. Inert elements cannot be focused, clicked or otherwise interacted with, and are excluded from the accessibility tree.
+Element is considered not inert when it is **not** a part of an inert subtree. Inert elements cannot be focused, clicked or otherwise interacted with.
 
 Element is **inert** when:
-- it is an element with the [`inert`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inert) attribute, or a descendant of such an element;
-- a modal `<dialog>` is open, and the element is not a part of that dialog.
+- it is an element with the [`inert`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inert) attribute, or a descendant of such an element.
 
 ## Receives Events
 

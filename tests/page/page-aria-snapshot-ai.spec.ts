@@ -358,16 +358,37 @@ it('AR-059 should not nest cursor pointer hints', async ({ page }) => {
   `);
 });
 
-it('AR-060 should omit names that just repeat printed descendant nodes', async ({ page }) => {
+it('AR-060 should omit names that just repeat printed descendant nodes', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43809' } }, async ({ page }) => {
   await page.setContent(`
     <h3><a style="cursor: pointer" href="/issues/1">Clipboard API</a></h3>
+    <dialog open aria-labelledby="title">
+      <h2 id="title">Delete item?</h2>
+      <button>OK</button>
+    </dialog>
+    <nav aria-labelledby="nav-title"><h2 id="nav-title">Account</h2></nav>
+    <table>
+      <caption>Monthly totals</caption>
+      <tr><th scope="col"><button>Price</button></th></tr>
+    </table>
   `);
 
   const snapshot = await snapshotForAI(page);
   expect(snapshot).toContainYaml(`
-    - heading [level=3] [ref=e2]:
-      - link "Clipboard API" [ref=e3] [cursor=pointer]:
-        - /url: /issues/1
+    - generic [active] [ref=e1]:
+      - heading [level=3] [ref=e2]:
+        - link "Clipboard API" [ref=e3] [cursor=pointer]:
+          - /url: /issues/1
+      - dialog "Delete item?" [ref=e4]:
+        - heading "Delete item?" [level=2] [ref=e5]
+        - button "OK" [ref=e6]
+      - navigation "Account" [ref=e7]:
+        - heading "Account" [level=2] [ref=e8]
+      - table "Monthly totals" [ref=e9]:
+        - caption [ref=e10]: Monthly totals
+        - rowgroup [ref=e11]:
+          - row [ref=e12]:
+            - columnheader "Price" [ref=e13]:
+              - button "Price" [ref=e14]
   `);
 });
 
@@ -1001,43 +1022,4 @@ it('AR-093 should not include hidden iframes', async ({ page }) => {
   `);
   expect(snapshot).not.toContain('Hidden');
   expect(snapshot).not.toContain('None');
-});
-
-it('AR-094 should not generate refs for inert elements', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/36938' } }, async ({ page }) => {
-  await page.setContent(`
-    <button>with-ref</button>
-    <button inert>no-ref</button>
-    <div inert>
-      <button>no-ref</button>
-    </div>
-  `);
-
-  const snapshot = await snapshotForAI(page);
-  expect(snapshot).toContainYaml(`
-    - generic [active] [ref=e1]:
-      - button "with-ref" [ref=e2]
-      - button: no-ref
-      - generic:
-        - button: no-ref
-  `);
-});
-
-it('AR-095 should not generate refs for elements outside of a modal dialog', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/36938' } }, async ({ page }) => {
-  await page.setContent(`
-    <button>Outside</button>
-    <dialog id=dialog>
-      <button>Inside</button>
-    </dialog>
-    <script>
-      document.getElementById('dialog').showModal();
-    </script>
-  `);
-
-  const snapshot = await snapshotForAI(page);
-  expect(snapshot).toContainYaml(`
-    - generic:
-      - button: Outside
-      - dialog [ref=e1]:
-        - button "Inside" [active] [ref=e2]
-  `);
 });

@@ -44,17 +44,3 @@ it('CL-112 should timeout waiting for inert element to become non-inert', async 
   expect(error.message).toContain('element is inert');
   expect(error.message).toContain('retrying click action');
 });
-
-it('CL-113 should timeout waiting for element outside of a modal dialog', async ({ page }) => {
-  await page.setContent(`
-    <button onclick="javascript:window.__CLICKED=true;">Click target</button>
-    <dialog id=dialog><button>Inside</button></dialog>
-    <script>
-      document.getElementById('dialog').showModal();
-    </script>
-  `);
-  const error = await page.click('text=Click target', { timeout: 3000 }).catch(e => e);
-  expect(await page.evaluate('window.__CLICKED')).toBe(undefined);
-  expect(error.message).toContain('page.click: Timeout 3000ms exceeded.');
-  expect(error.message).toContain('element is inert');
-});

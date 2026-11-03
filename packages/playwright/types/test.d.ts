@@ -18,17 +18,16 @@
 import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions, Page, LaunchOptions, ViewportSize, Geolocation, HTTPCredentials, Locator, APIResponse, PageScreenshotOptions } from 'playwright-core';
 export * from 'playwright-core';
 
-export type ReporterSecretsOptions = { secrets?: { name?: string, value: string }[] };
-export type BlobReporterOptions = ReporterSecretsOptions & { outputDir?: string, fileName?: string };
-export type DotReporterOptions = ReporterSecretsOptions & { omitTags?: boolean };
-export type FailuresReporterOptions = ReporterSecretsOptions & { omitTags?: boolean };
-export type LineReporterOptions = ReporterSecretsOptions & { omitTags?: boolean };
-export type ListReporterOptions = ReporterSecretsOptions & { printSteps?: boolean, printFailuresInline?: boolean, omitTags?: boolean };
-export type GitHubReporterOptions = ReporterSecretsOptions & { omitTags?: boolean };
-export type JUnitReporterOptions = ReporterSecretsOptions & { outputFile?: string, stripANSIControlSequences?: boolean, includeProjectInTestName?: boolean, includeRetries?: boolean, omitTags?: boolean, onlyFailures?: boolean };
-export type JsonReporterOptions = ReporterSecretsOptions & { outputFile?: string, onlyFailures?: boolean };
-export type PerfettoReporterOptions = ReporterSecretsOptions & { outputFile?: string };
-export type HtmlReporterOptions = ReporterSecretsOptions & {
+export type BlobReporterOptions = { outputDir?: string, fileName?: string };
+export type DotReporterOptions = { omitTags?: boolean };
+export type FailuresReporterOptions = { omitTags?: boolean };
+export type LineReporterOptions = { omitTags?: boolean };
+export type ListReporterOptions = { printSteps?: boolean, printFailuresInline?: boolean, omitTags?: boolean };
+export type GitHubReporterOptions = { omitTags?: boolean };
+export type JUnitReporterOptions = { outputFile?: string, stripANSIControlSequences?: boolean, includeProjectInTestName?: boolean, includeRetries?: boolean, omitTags?: boolean, onlyFailures?: boolean };
+export type JsonReporterOptions = { outputFile?: string, onlyFailures?: boolean };
+export type PerfettoReporterOptions = { outputFile?: string };
+export type HtmlReporterOptions = {
   onlyFailures?: boolean;
   outputFolder?: string;
   open?: 'always' | 'never' | 'on-failure';
@@ -53,7 +52,7 @@ export type ReporterDescription = Readonly<
   ['json'] | ['json', JsonReporterOptions] |
   ['perfetto'] | ['perfetto', PerfettoReporterOptions] |
   ['html'] | ['html', HtmlReporterOptions] |
-  ['null'] | ['null', ReporterSecretsOptions] |
+  ['null'] |
   [string] | [string, any]
 >;
 
@@ -2898,7 +2897,7 @@ export interface TestType<TestArgs extends {}, WorkerArgs extends {}> {
    * });
    * ```
    *
-   * The built-in `exclusive` lock runs the test only when no other tests are running.
+   * The built-in `-exclusive-` lock runs the test only when no other tests are running.
    *
    * Learn more about [test locks](https://playwright.dev/docs/test-parallel#test-locks).
    * @param title Test title.
@@ -2997,7 +2996,7 @@ export interface TestType<TestArgs extends {}, WorkerArgs extends {}> {
    * });
    * ```
    *
-   * The built-in `exclusive` lock runs the test only when no other tests are running.
+   * The built-in `-exclusive-` lock runs the test only when no other tests are running.
    *
    * Learn more about [test locks](https://playwright.dev/docs/test-parallel#test-locks).
    * @param title Test title.
@@ -7583,7 +7582,7 @@ export interface PlaywrightWorkerOptions {
    *
    * Learn more about [recording trace](https://playwright.dev/docs/test-use-options#recording-options).
    */
-  trace: TraceMode | /** deprecated */ 'retry-with-trace' | { mode: TraceMode, snapshots?: boolean | { dom?: boolean, aria?: boolean, screen?: boolean }, screenshots?: boolean, sources?: boolean, attachments?: boolean, secrets?: { name?: string, value: string }[] };
+  trace: TraceMode | /** deprecated */ 'retry-with-trace' | { mode: TraceMode, snapshots?: boolean | { dom?: boolean, aria?: boolean, screen?: boolean }, screenshots?: boolean, sources?: boolean, attachments?: boolean };
   /**
    * Whether to record video for each test. Defaults to `'off'`. The initial run of a test is the "first run";
    * subsequent runs caused by [retries](https://playwright.dev/docs/test-retries) are "retries".
@@ -8000,6 +7999,37 @@ export interface PlaywrightTestOptions {
    */
   locale: string | undefined;
   /**
+   * Whether locators omit hidden elements by default. Defaults to `false`. If set to `true`, each locator is resolved
+   * as if [locator.visible()](https://playwright.dev/docs/api/class-locator#locator-visible) were appended: only the
+   * final matched element is checked for [visibility](https://playwright.dev/docs/actionability#visible), not its intermediate ancestors.
+   * This affects actions, assertions, counts and element evaluation, but not selector-based methods such as
+   * [page.$(selector[, options])](https://playwright.dev/docs/api/class-page#page-query-selector).
+   *
+   * Pass `omitHidden: false` when creating a locator to opt out. The override is preserved by `filter()`, `first()`,
+   * `last()`, `nth()`, `and()`, `or()` and `describe()`. Creating a descendant locator uses the context default again,
+   * unless an override is supplied for that descendant. Explicit visibility filters are never removed. Role locators
+   * still apply their accessibility matching rules; use `getByRole(..., { includeHidden: true, omitHidden: false })` to
+   * include hidden elements when this context option is enabled.
+   *
+   * With `true`, hidden elements are treated as missing by `toBeHidden()` and `waitFor({ state: 'hidden' })`. To check
+   * attachment of a hidden element, create the locator with `omitHidden: false`.
+   *
+   * **Usage**
+   *
+   * ```js
+   * // playwright.config.ts
+   * import { defineConfig } from '@playwright/test';
+   *
+   * export default defineConfig({
+   *   use: {
+   *     locatorOmitHidden: true,
+   *   },
+   * });
+   * ```
+   *
+   */
+  locatorOmitHidden: boolean;
+  /**
    * Whether to emulate network being offline. Defaults to `false`. Learn more about
    * [network emulation](https://playwright.dev/docs/emulation#offline).
    *
@@ -8318,8 +8348,9 @@ export interface PlaywrightTestOptions {
   serviceWorkers: ServiceWorkerPolicy;
   /**
    * Custom attribute to be used in
-   * [page.getByTestId(testId)](https://playwright.dev/docs/api/class-page#page-get-by-test-id). `data-testid` is used
-   * by default. To match elements with any of several attributes, pass them as a comma-separated list.
+   * [page.getByTestId(testId[, options])](https://playwright.dev/docs/api/class-page#page-get-by-test-id).
+   * `data-testid` is used by default. To match elements with any of several attributes, pass them as a comma-separated
+   * list.
    *
    * **Usage**
    *
