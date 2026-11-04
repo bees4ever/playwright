@@ -211,8 +211,8 @@ export class Page extends ChannelOwner<channels.PageChannel> implements api.Page
 
   private async _onRoute(route: Route) {
     route._context = this.context();
-    const routeHandlers = this._routes.slice();
-    for (const routeHandler of routeHandlers) {
+    const routeHandlers = this._routes;
+    for (const routeHandler of routeHandlers.slice()) {
       // If the page was closed we stall all requests right away.
       if (this._closeWasCalled || this._browserContext.isClosed())
         return;
@@ -224,7 +224,8 @@ export class Page extends ChannelOwner<channels.PageChannel> implements api.Page
       if (routeHandler.willExpire())
         this._routes.splice(index, 1);
       const handled = await routeHandler.handle(route);
-      if (!this._routes.length)
+      // unrouteAll() replaces _routes and updates interception after waiting for handlers.
+      if (routeHandlers === this._routes && !this._routes.length)
         this._disableInterception().catch(() => {});
       if (handled)
         return;
@@ -769,31 +770,31 @@ export class Page extends ChannelOwner<channels.PageChannel> implements api.Page
     return this.mainFrame().locator(selector, options);
   }
 
-  getByTestId(testId: string | RegExp, options?: { omitHidden?: boolean }): Locator {
-    return this.mainFrame().getByTestId(testId, options);
+  getByTestId(testId: string | RegExp): Locator {
+    return this.mainFrame().getByTestId(testId);
   }
 
-  getByAltText(text: string | RegExp, options?: { exact?: boolean, omitHidden?: boolean }): Locator {
+  getByAltText(text: string | RegExp, options?: { exact?: boolean }): Locator {
     return this.mainFrame().getByAltText(text, options);
   }
 
-  getByLabel(text: string | RegExp, options?: { exact?: boolean, omitHidden?: boolean }): Locator {
+  getByLabel(text: string | RegExp, options?: { exact?: boolean }): Locator {
     return this.mainFrame().getByLabel(text, options);
   }
 
-  getByPlaceholder(text: string | RegExp, options?: { exact?: boolean, omitHidden?: boolean }): Locator {
+  getByPlaceholder(text: string | RegExp, options?: { exact?: boolean }): Locator {
     return this.mainFrame().getByPlaceholder(text, options);
   }
 
-  getByRef(ref: string, options?: { omitHidden?: boolean }): Locator {
-    return this.locator(`aria-ref=${ref}`, options);
+  getByRef(ref: string): Locator {
+    return this.locator(`aria-ref=${ref}`);
   }
 
-  getByText(text: string | RegExp, options?: { exact?: boolean, omitHidden?: boolean }): Locator {
+  getByText(text: string | RegExp, options?: { exact?: boolean }): Locator {
     return this.mainFrame().getByText(text, options);
   }
 
-  getByTitle(text: string | RegExp, options?: { exact?: boolean, omitHidden?: boolean }): Locator {
+  getByTitle(text: string | RegExp, options?: { exact?: boolean }): Locator {
     return this.mainFrame().getByTitle(text, options);
   }
 

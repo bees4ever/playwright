@@ -1225,6 +1225,8 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `CK-217` | `library/unit/clock.spec.ts` | Intl API › Creates a RelativeTimeFormat like normal |
 | `CK-218` | `library/unit/clock.spec.ts` | works with slow setTimeout in busy embedder |
 | `CK-219` | `library/unit/clock.spec.ts` | works with slow setTimeout in busy embedder when not paused |
+| `CK-220` | `library/page-clock.spec.ts` | while on pause › should keep timers scheduled during load pending when paused |
+| `CK-221` | `library/unit/clock.spec.ts` | runFor › should wait for an in-progress timer after replay pauses the clock |
 
 ### CL — Click
 
@@ -3254,7 +3256,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `IN-003` | `library/inspector/pause.spec.ts` | should collapse log entries to a single line |
 | `IN-004` | `library/inspector/pause.spec.ts` | pause › should pause and resume the script |
 | `IN-005` | `library/inspector/pause.spec.ts` | pause › should pause and resume the script with keyboard shortcut |
-| `IN-006` | `library/inspector/pause.spec.ts` | should resume from console |
+| `IN-006` | `library/inspector/pause.spec.ts` | pause › should resume from console |
 | `IN-007` | `library/inspector/pause.spec.ts` | pause › should pause after a navigation |
 | `IN-008` | `library/inspector/pause.spec.ts` | pause › should show source |
 | `IN-009` | `library/inspector/pause.spec.ts` | pause › should pause on next pause |
@@ -4833,7 +4835,6 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `SM-012` | `library/browsercontext-strict.spec.ts` | strict context mode › should fail page.textContent in strict mode |
 | `SM-013` | `library/browsercontext-strict.spec.ts` | strict context mode › should fail page.click in strict mode |
 | `SM-014` | `library/browsercontext-strict.spec.ts` | strict context mode › should opt out of strict mode |
-| `SM-015` | `library/browsercontext-strict.spec.ts` | locator visibility › should ignore hidden matches only when resolving locators |
 
 ### SO — Select option
 
