@@ -502,9 +502,13 @@ Whether to skip entries from `.gitignore` when searching for test files. By defa
 
 ## property: TestConfig.retries
 * since: v1.10
-- type: ?<[int]>
+- type: ?<[int]|[Array]<[Object]>>
+  - `count` <[int]> The maximum number of retries given to a failed test when this entry applies.
+  - `condition` ?<[RegExp]> Regular expression matched against the error messages of the failed attempt. An entry without a condition always applies.
 
 The maximum number of retry attempts given to failed tests. By default failing tests are not retried. Learn more about [test retries](../test-retries.md#retries).
+
+When set to a list, the number of retries depends on the error. After each failed attempt, Playwright takes the largest `count` among the entries that apply, and retries the test when it has run fewer times than that. The latest failed attempt decides: a test that first fails with a matching error and then with a different one only gets the retries of the latter. Worker crashes and timeouts are matched by their error message like any other failure.
 
 **Usage**
 
@@ -513,6 +517,19 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   retries: 2,
+});
+```
+
+Retry any failure once, and up to three times when the browser or the worker crashed:
+
+```js title="playwright.config.ts"
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  retries: [
+    { count: 1 },
+    { count: 3, condition: /Target crashed|worker process exited unexpectedly/ },
+  ],
 });
 ```
 
@@ -735,6 +752,9 @@ export default defineConfig({
   - `url` ?<[string]> The url on your http server that is expected to return a 2xx, 3xx, 400, 401, 402, or 403 status code when the server is ready to accept connections. Redirects (3xx status codes) are being followed and the new location is checked. Either `port` or `url` should be specified.
 
 Launch a development web server (or multiple) during the tests.
+
+Top-level servers start before `globalSetup` and stop after `globalTeardown`, regardless of project
+selection. To start servers only for particular projects, use [`property: TestProject.webServer`].
 
 **Details**
 

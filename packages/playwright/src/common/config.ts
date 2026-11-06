@@ -20,10 +20,12 @@ import path from 'path';
 
 import { packageJSON } from '../package';
 import { getPackageJsonPath, mergeObjects, takeFirst } from '../util';
+import { maxRetries, normalizeRetries } from './retries';
 
 import type { Config, Fixtures, Metadata, PlaywrightWorkerOptions, Project, ReporterDescription } from '../../types/test';
 import type { TestRunnerPluginRegistration } from '../plugins';
 import type { ConfigCLIOverrides } from './ipc';
+import type { RetriesEntry } from './retries';
 import type { Location } from '../../types/testReporter';
 import type { FullConfig, FullProject } from '../../types/testReporter';
 
@@ -131,7 +133,7 @@ export class FullConfigInternal {
     }
 
     // When no projects are defined, do not use config.workers as a hard limit for project.workers.
-    const projectConfigs = configCLIOverrides.projects || userConfig.projects || [{ ...userConfig, workers: undefined }];
+    const projectConfigs = configCLIOverrides.projects || userConfig.projects || [{ ...userConfig, workers: undefined, webServer: undefined }];
     this.projects = projectConfigs.map(p => new FullProjectInternal(configDir, userConfig, this, p, this.configCLIOverrides, packageJsonDir));
     resolveProjectDependencies(this.projects);
     this._assignUniqueProjectIds(this.projects);
@@ -164,6 +166,7 @@ export class FullProjectInternal {
   readonly respectGitIgnore: boolean;
   readonly snapshotPathTemplate: string | undefined;
   readonly workers: number | undefined;
+  readonly retries: RetriesEntry[];
   readonly default: boolean;
   id = '';
   deps: FullProjectInternal[] = [];
@@ -175,11 +178,15 @@ export class FullProjectInternal {
     this.snapshotPathTemplate = takeFirst(projectConfig.snapshotPathTemplate, config.snapshotPathTemplate);
 
     const use = mergeObjects(config.use, projectConfig.use, configCLIOverrides.use);
+    const webServer = projectConfig.webServer;
+    if (use.baseURL === undefined && webServer && !Array.isArray(webServer) && webServer.port && !webServer.url)
+      use.baseURL = `http://localhost:${webServer.port}`;
     // `--trace <mode>` only forces the tracing mode, preserving other trace options from the config.
     const configTrace = takeFirst((projectConfig.use as Partial<PlaywrightWorkerOptions> | undefined)?.trace, (config.use as Partial<PlaywrightWorkerOptions> | undefined)?.trace);
     if (typeof configCLIOverrides.use?.trace === 'string' && typeof configTrace === 'object' && configTrace)
       use.trace = { ...configTrace, mode: configCLIOverrides.use.trace };
 
+    const retries = normalizeRetries(takeFirst<number | RetriesEntry[]>(configCLIOverrides.retries, projectConfig.retries, config.retries, 0));
     this.project = {
       grep: takeFirst(projectConfig.grep, config.grep, defaultGrep),
       grepInvert: takeFirst(projectConfig.grepInvert, config.grepInvert, null),
@@ -187,7 +194,7 @@ export class FullProjectInternal {
       // Note: we either apply the cli override for repeatEach or not, depending on whether the
       // project is top-level vs dependency. See collectProjectsAndTestFiles in loadUtils.
       repeatEach: takeFirst(projectConfig.repeatEach, config.repeatEach, 1),
-      retries: takeFirst(configCLIOverrides.retries, projectConfig.retries, config.retries, 0),
+      retries: maxRetries(retries),
       metadata: takeFirst(projectConfig.metadata, config.metadata, {}),
       name: takeFirst(projectConfig.name, config.name, ''),
       testDir,
@@ -199,7 +206,13 @@ export class FullProjectInternal {
       dependencies: projectConfig.dependencies || [],
       teardown: projectConfig.teardown,
       ignoreSnapshots: takeFirst(configCLIOverrides.ignoreSnapshots,  projectConfig.ignoreSnapshots, config.ignoreSnapshots, false),
+      webServer: webServer ? (Array.isArray(webServer) ? webServer : [webServer]) : [],
     };
+    for (const server of this.project.webServer) {
+      if (server.port !== undefined && server.url !== undefined)
+        throw new Error(`Either 'port' or 'url' should be specified in projects[${this.project.name}].webServer.`);
+    }
+    this.retries = retries;
     this.fullyParallel = takeFirst(configCLIOverrides.fullyParallel, projectConfig.fullyParallel, config.fullyParallel, undefined);
     this.expect = takeFirst(projectConfig.expect, config.expect, {});
     if (this.expect.toHaveScreenshot?.stylePath) {

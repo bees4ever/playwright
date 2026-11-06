@@ -69,6 +69,9 @@ type UseOptions<TestArgs, WorkerArgs> = Partial<WorkerArgs> & Partial<TestArgs>;
  * [configuration file](https://playwright.dev/docs/test-configuration). Note that all properties of
  * [TestProject](https://playwright.dev/docs/api/class-testproject) are available in the top-level
  * [TestConfig](https://playwright.dev/docs/api/class-testconfig), in which case they are shared between all projects.
+ * The exception is
+ * [testProject.webServer](https://playwright.dev/docs/api/class-testproject#test-project-web-server): top-level
+ * servers are started separately, for the whole run.
  *
  * Here is an example configuration that runs every test in Chromium, Firefox and WebKit, both Desktop and Mobile
  * versions.
@@ -138,6 +141,54 @@ interface TestProject<TestArgs = {}, WorkerArgs = {}> {
    * all projects.
    */
   use?: UseOptions<TestArgs, WorkerArgs>;
+  /**
+   * Launch a development web server (or multiple) for this project. Accepts the same options as
+   * [testConfig.webServer](https://playwright.dev/docs/api/class-testconfig#test-config-web-server).
+   *
+   * Project servers are added to the top-level servers, not inherited from them or used to replace them. They start
+   * after `globalSetup` and stop before its returned teardown function and `globalTeardown`. In the command line,
+   * project selection controls which servers start, including servers for dependencies and teardown projects. Test
+   * filters and sharding do not affect server startup. Listing tests does not start project servers. In UI mode and VS
+   * Code, all project servers start with global setup and stay alive across test runs until global teardown or
+   * configuration reload.
+   *
+   * [fullProject.webServer](https://playwright.dev/docs/api/class-fullproject#full-project-web-server) exposes these
+   * settings as an array, including in `globalSetup`. Project servers are not available during `globalSetup` or
+   * `globalTeardown`.
+   *
+   * For a single server with `port` and no `url`, the project's
+   * [testOptions.baseURL](https://playwright.dev/docs/api/class-testoptions#test-options-base-url) defaults to
+   * `http://localhost:<port>`. An explicitly configured `baseURL` takes precedence. For arrays or servers with `url`,
+   * configure `baseURL` explicitly.
+   *
+   * **Usage**
+   *
+   * ```js
+   * // playwright.config.ts
+   * import { defineConfig } from '@playwright/test';
+   *
+   * export default defineConfig({
+   *   projects: [
+   *     {
+   *       name: 'local',
+   *       webServer: {
+   *         command: 'npm run start',
+   *         url: 'http://localhost:3000',
+   *         reuseExistingServer: !process.env.CI,
+   *       },
+   *       use: { baseURL: 'http://localhost:3000' },
+   *     },
+   *     {
+   *       name: 'production',
+   *       use: { baseURL: 'https://production.example' },
+   *     },
+   *   ],
+   * });
+   * ```
+   *
+   * Running `npx playwright test --project=production` does not start the local server.
+   */
+  webServer?: TestConfigWebServer | TestConfigWebServer[];
   /**
    * Whether the project runs when no `--project` command line option is passed. Defaults to `true`.
    *
@@ -486,13 +537,27 @@ interface TestProject<TestArgs = {}, WorkerArgs = {}> {
    * The maximum number of retry attempts given to failed tests. Learn more about
    * [test retries](https://playwright.dev/docs/test-retries#retries).
    *
+   * Set to a list to make the number of retries depend on the error, see
+   * [testConfig.retries](https://playwright.dev/docs/api/class-testconfig#test-config-retries).
+   *
    * Use [test.describe.configure([options])](https://playwright.dev/docs/api/class-test#test-describe-configure) to
    * change the number of retries for a specific file or a group of tests.
    *
    * Use [testConfig.retries](https://playwright.dev/docs/api/class-testconfig#test-config-retries) to change this
    * option for all projects.
    */
-  retries?: number;
+  retries?: number|Array<{
+    /**
+     * The maximum number of retries given to a failed test when this entry applies.
+     */
+    count: number;
+
+    /**
+     * Regular expression matched against the error messages of the failed attempt. An entry without a condition always
+     * applies.
+     */
+    condition?: RegExp;
+  }>;
 
   /**
    * The base directory, relative to the config file, for snapshot files created with `toMatchSnapshot`. Defaults to
@@ -818,6 +883,13 @@ export interface FullProject<TestArgs = {}, WorkerArgs = {}> {
    */
   use: UseOptions<PlaywrightTestOptions & TestArgs, PlaywrightWorkerOptions & WorkerArgs>;
   /**
+   * The servers configured in
+   * [testProject.webServer](https://playwright.dev/docs/api/class-testproject#test-project-web-server), normalized to
+   * an array. Does not include top-level servers. This property is an empty array in merged reports because server
+   * configuration is not serialized.
+   */
+  webServer: TestConfigWebServer[];
+  /**
    * See [testProject.dependencies](https://playwright.dev/docs/api/class-testproject#test-project-dependencies).
    */
   dependencies: Array<string>;
@@ -858,7 +930,8 @@ export interface FullProject<TestArgs = {}, WorkerArgs = {}> {
   repeatEach: number;
 
   /**
-   * See [testProject.retries](https://playwright.dev/docs/api/class-testproject#test-project-retries).
+   * See [testProject.retries](https://playwright.dev/docs/api/class-testproject#test-project-retries). When retries are
+   * configured as a list, this is the largest `count` in the list.
    */
   retries: number;
 
@@ -988,6 +1061,10 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
   use?: UseOptions<TestArgs, WorkerArgs>;
   /**
    * Launch a development web server (or multiple) during the tests.
+   *
+   * Top-level servers start before `globalSetup` and stop after `globalTeardown`, regardless of project selection. To
+   * start servers only for particular projects, use
+   * [testProject.webServer](https://playwright.dev/docs/api/class-testproject#test-project-web-server).
    *
    * **Details**
    *
@@ -1685,6 +1762,12 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    * The maximum number of retry attempts given to failed tests. By default failing tests are not retried. Learn more
    * about [test retries](https://playwright.dev/docs/test-retries#retries).
    *
+   * When set to a list, the number of retries depends on the error. After each failed attempt, Playwright takes the
+   * largest `count` among the entries that apply, and retries the test when it has run fewer times than that. The
+   * latest failed attempt decides: a test that first fails with a matching error and then with a different one only
+   * gets the retries of the latter. Worker crashes and timeouts are matched by their error message like any other
+   * failure.
+   *
    * **Usage**
    *
    * ```js
@@ -1696,8 +1779,33 @@ interface TestConfig<TestArgs = {}, WorkerArgs = {}> {
    * });
    * ```
    *
+   * Retry any failure once, and up to three times when the browser or the worker crashed:
+   *
+   * ```js
+   * // playwright.config.ts
+   * import { defineConfig } from '@playwright/test';
+   *
+   * export default defineConfig({
+   *   retries: [
+   *     { count: 1 },
+   *     { count: 3, condition: /Target crashed|worker process exited unexpectedly/ },
+   *   ],
+   * });
+   * ```
+   *
    */
-  retries?: number;
+  retries?: number|Array<{
+    /**
+     * The maximum number of retries given to a failed test when this entry applies.
+     */
+    count: number;
+
+    /**
+     * Regular expression matched against the error messages of the failed attempt. An entry without a condition always
+     * applies.
+     */
+    condition?: RegExp;
+  }>;
 
   /**
    * Controls when failed tests are retried. Defaults to `'immediate'`.
@@ -2101,7 +2209,8 @@ export interface FullConfig<TestArgs = {}, WorkerArgs = {}> {
    */
   reporter: ReporterDescription[];
   /**
-   * See [testConfig.webServer](https://playwright.dev/docs/api/class-testconfig#test-config-web-server).
+   * See [testConfig.webServer](https://playwright.dev/docs/api/class-testconfig#test-config-web-server). This property
+   * is `null` in merged reports because server configuration is not serialized.
    */
   webServer: TestConfigWebServer | null;
   /**
@@ -7998,6 +8107,33 @@ export interface PlaywrightTestOptions {
    *
    */
   locale: string | undefined;
+  /**
+   * Whether to restrict all locators in this context to [visible](https://playwright.dev/docs/actionability#visible) elements. Defaults to
+   * `false`. When enabled, actions, assertions and queries behave as if
+   * [locator.visible()](https://playwright.dev/docs/api/class-locator#locator-visible) were appended to the end of the
+   * locator chain, unless its last part is an explicit visibility filter. For example, `.filter({ visible: false })` at
+   * the end of a locator selects hidden elements even when this option is enabled. Intermediate locators and inner
+   * locators used in [locator.filter([options])](https://playwright.dev/docs/api/class-locator#locator-filter) are not
+   * automatically filtered. This does not change the accessibility rules of
+   * [page.getByRole(role[, options])](https://playwright.dev/docs/api/class-page#page-get-by-role) or the behavior of
+   * selector-based methods such as
+   * [page.$(selector[, options])](https://playwright.dev/docs/api/class-page#page-query-selector).
+   *
+   * **Usage**
+   *
+   * ```js
+   * // playwright.config.ts
+   * import { defineConfig } from '@playwright/test';
+   *
+   * export default defineConfig({
+   *   use: {
+   *     locateOnlyVisible: true,
+   *   },
+   * });
+   * ```
+   *
+   */
+  locateOnlyVisible: boolean;
   /**
    * Whether to emulate network being offline. Defaults to `false`. Learn more about
    * [network emulation](https://playwright.dev/docs/emulation#offline).
