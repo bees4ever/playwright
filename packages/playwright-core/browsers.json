@@ -17,14 +17,14 @@
     },
     {
       "name": "firefox",
-      "revision": "1573",
+      "revision": "1575",
       "installByDefault": true,
       "browserVersion": "159.0",
       "title": "Firefox"
     },
     {
       "name": "webkit",
-      "revision": "2391",
+      "revision": "2392",
       "installByDefault": true,
       "revisionOverrides": {
         "mac14": "2251",
