@@ -2037,6 +2037,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `EM-025` | `library/emulation-coop.spec.ts` | emulation with COOP › should preserve context options |
 | `EM-026` | `library/emulation-coop.spec.ts` | emulation with COOP › should preserve page.emulateMedia |
 | `EM-027` | `library/emulation-coop.spec.ts` | emulation with COOP › should preserve mobile emulation |
+| `EM-028` | `library/emulation-focus.spec.ts` | should keep mouse drag when interacting with another page/context |
 
 ### ER — Page errors and crashes
 
@@ -4021,6 +4022,8 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `NE-141` | `library/ignorehttpserrors.spec.ts` | should fail with WebSocket if not ignored |
 | `NE-142` | `library/ignorehttpserrors.spec.ts` | serviceWorker should intercept document request |
 | `NE-143` | `page/page-event-network.spec.ts` | should resolve responses after a same-process navigation |
+| `NE-144` | `library/browsercontext-network-event.spec.ts` | should not wait for navigation after background cache revalidation |
+| `NE-145` | `page/page-network-response.spec.ts` | should return source for a module script loaded from cache |
 
 ### OO — OOPIF
 
@@ -4999,6 +5002,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `SS-095` | `page/page-screenshot.spec.ts` | page screenshot › should capture webgl canvas after its drawing buffer is resized |
 | `SS-096` | `page/page-screenshot.spec.ts` | page screenshot › should not wait for unused font face with failed local() source |
 | `SS-097` | `page/page-screenshot.spec.ts` | page screenshot › should take fullPage screenshots of SVG documents |
+| `SS-098` | `page/page-screenshot.spec.ts` | page screenshot animations › should preserve scroll animation progress during screenshots |
 
 ### ST — Storage
 

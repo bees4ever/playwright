@@ -65,9 +65,9 @@ result = page.webmcp.call_tool("add", {"a": 2, "b": 40})
 print(result["content"][0]["text"])  # "42"
 ```
 
-[Playwright MCP](./getting-started-mcp.md) also supports WebMCP by default, with page-defined tools offered to the agent as `webmcp_<tool>`. Pass `--no-webmcp` to opt out.
+[Playwright MCP](https://playwright.dev/mcp/introduction) also supports WebMCP by default, with page-defined tools offered to the agent as `webmcp_<tool>`. Pass `--no-webmcp` to opt out.
 
-[`playwright-cli`](./getting-started-cli.md) exposes them as well:
+[`playwright-cli`](https://playwright.dev/agent-cli/introduction) exposes them as well:
 
 ```bash
 playwright-cli webmcp-list
@@ -96,7 +96,7 @@ page.screencast.show_actions(
 - The cursor stays visible at the last action point, survives navigations and travels along a natural, eased path.
 - Videos are encoded with VP9 instead of VP8, which takes less CPU and produces smaller files of the same or better
   quality.
-- All video options are also available in [Playwright MCP](./getting-started-mcp.md) and [`playwright-cli`](./getting-started-cli.md).
+- All video options are also available in [Playwright MCP](https://playwright.dev/mcp/introduction) and [`playwright-cli`](https://playwright.dev/agent-cli/introduction).
 
 ### 🪆 Locator.within()
 
@@ -1172,7 +1172,7 @@ This version was also tested against the following stable channels:
   locator = page.locator("iframe[name='embedded']")
   # ...
   frame_locator = locator.content_frame
-  frame_locator.getByRole("button").click()
+  frame_locator.get_by_role("button").click()
   ```
 
 - New method [`method: FrameLocator.owner`] converts a [FrameLocator] object to a [Locator]. This can be useful when you have a [FrameLocator] object obtained somewhere, and later on would like to interact with the `iframe` element.
