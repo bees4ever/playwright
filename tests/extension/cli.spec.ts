@@ -14,44 +14,71 @@
  * limitations under the License.
  */
 
-import { test as base, expect, extensionId, clickAllowAndSelect } from './extension-fixtures';
+import { test, expect } from './harness';
 
-import type { CliResult } from './extension-fixtures';
-import type { Page } from 'playwright';
-
-const test = base.extend<{
-  startAttach: () => Promise<{ confirmationPage: Page, cliPromise: Promise<CliResult> }>,
-}>({
-  startAttach: async ({ browserWithExtension, cli }, use) => {
-    await use(async () => {
-      const browserContext = await browserWithExtension.launch();
-      const confirmationPagePromise = browserContext.waitForEvent('page', page =>
-        page.url().startsWith(`chrome-extension://${extensionId}/connect.html`)
-      );
-      const cliPromise = cli(['attach', '--extension=chromium'], {
-        env: { PWTEST_EXTENSION_USER_DATA_DIR: browserWithExtension.userDataDir },
-      });
-      const confirmationPage = await confirmationPagePromise;
-      return { confirmationPage, cliPromise };
-    });
-  },
-});
-
-test('attach <url> --extension', async ({ startAttach, cli, server }) => {
-  const { confirmationPage, cliPromise } = await startAttach();
-  await clickAllowAndSelect(confirmationPage, 'Welcome');
+test('attach --extension', async ({ user, cli, browserWithExtension, server }) => {
+  const connectPage = user.waitForConnectPage();
+  const attached = cli(['attach', '--extension=chromium'], { env: { PWTEST_EXTENSION_USER_DATA_DIR: browserWithExtension.userDataDir } });
+  await user.allow(await connectPage);
 
   {
-    const { output } = await cliPromise;
+    const { output } = await attached;
     expect(output).toContain(`### Page`);
-    expect(output).toContain(`- Page URL: chrome-extension://${extensionId}/connect.html?`);
-    expect(output).toContain(`- Page Title: Welcome`);
+    expect(output).toContain(`- Page URL: about:blank`);
   }
 
   {
+    // The session has the name of the browser channel.
     const { output } = await cli(['-s=chromium', 'goto', server.HELLO_WORLD]);
     expect(output).toContain(`### Page`);
     expect(output).toContain(`- Page URL: ${server.HELLO_WORLD}`);
     expect(output).toContain(`- Page Title: Title`);
   }
+});
+
+test('attach --extension gives the name and the color of the session to the tab group', async ({ user, cli, browserWithExtension }) => {
+  const connectPage = user.waitForConnectPage();
+  const attached = cli(['attach', '--extension=chromium', '--session=my session', '--session-color=red'], {
+    env: { PWTEST_EXTENSION_USER_DATA_DIR: browserWithExtension.userDataDir },
+  });
+  await user.allow(await connectPage);
+  await attached;
+
+  await cli(['--session=my session', 'goto', user.urlOf('Alpha')]);
+  await expect.poll(user.groups).toEqual([{ title: 'my session', color: 'red', tabs: ['Alpha'] }]);
+});
+
+test('detach --close-tabs closes the tabs of the session', async ({ user, cli, browserWithExtension }) => {
+  await user.openTab('Alpha');
+  const userTabs = await user.tabs();
+
+  const connectPage = user.waitForConnectPage();
+  const attached = cli(['attach', '--extension=chromium', '--session=work'], {
+    env: { PWTEST_EXTENSION_USER_DATA_DIR: browserWithExtension.userDataDir },
+  });
+  await user.allow(await connectPage);
+  await attached;
+
+  await cli(['--session=work', 'goto', user.urlOf('Beta')]);
+  await cli(['--session=work', 'tab-new', user.urlOf('Gamma')]);
+  await expect.poll(user.groups).toEqual([{ title: 'work', color: 'green', tabs: ['Beta', 'Gamma'] }]);
+
+  const { output } = await cli(['--session=work', 'detach', '--close-tabs']);
+  expect(output).toContain(`Browser 'work' detached`);
+  await expect.poll(() => user.tabs()).toEqual(userTabs);
+  expect(await user.groups()).toEqual([]);
+});
+
+test('attach --extension --no-tab-group leaves the tab where the user has it', async ({ user, cli, browserWithExtension }) => {
+  await user.openTab('Alpha');
+  await user.dragIntoNewGroup('Alpha', 'My tabs');
+
+  const connectPage = user.waitForConnectPage();
+  const attached = cli(['attach', '--extension=chromium', '--no-tab-group'], {
+    env: { PWTEST_EXTENSION_USER_DATA_DIR: browserWithExtension.userDataDir },
+  });
+  await user.allow(await connectPage, { tabs: ['Alpha'] });
+
+  expect((await attached).output).toContain(`- Page Title: Alpha`);
+  expect(await user.tab('Alpha')).toEqual({ group: 'My tabs', badge: '✓' });
 });

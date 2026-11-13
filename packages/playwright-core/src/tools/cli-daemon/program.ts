@@ -38,6 +38,8 @@ export function decorateProgram(program: Command) {
       .option('--device <device>', 'emulate a specific device, for example "iPhone 15"')
       .option('--mobile', 'emulate a generic mobile device (Pixel 10 for Chromium, iPhone 17 for WebKit)')
       .option('--extension', 'run with the extension')
+      .option('--no-tab-group', 'do not group the tabs of the session when running with the extension')
+      .option('--session-color <color>', 'color of the tab group of the session when running with the extension')
       .option('--browser <name>', 'browser to use (chromium, chrome, firefox, webkit)')
       .option('--persistent', 'use a persistent browser context')
       .option('--profile <path>', 'path to the user data dir')
@@ -69,7 +71,7 @@ export function decorateProgram(program: Command) {
           if (!browserContext)
             throw new Error('Error: unable to connect to a browser that does not have any contexts');
           const persistent = options.persistent || options.profile || mcpConfig.browser.userDataDir ? true : undefined;
-          const socketPath = await startCliDaemonServer(sessionName, browserContext, browserInfo, mcpConfig, clientInfo, mcpClientInfo, { persistent, ownership, idleTimer });
+          const socketPath = await startCliDaemonServer(sessionName, browserContext, browserInfo, mcpConfig, clientInfo, mcpClientInfo, { persistent, ownership, idleTimer, extension: !!options.extension });
           console.log(`Daemon listening on ${socketPath}\n`);
         } catch (error) {
           console.log(error);

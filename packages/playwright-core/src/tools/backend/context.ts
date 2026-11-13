@@ -27,6 +27,7 @@ import { playwright } from '../../inprocess';
 
 import { dedent, languageGeneratorId, secretCode } from './codegen';
 import { Tab } from './tab';
+import { throwIfExecutableMissing } from '../utils/browserErrors';
 
 import type { BrowserContextEx } from './browserContextEx';
 import type { CodegenLanguage } from './codegen';
@@ -138,7 +139,6 @@ export class Context {
   private _webmcpToolsSignature = '';
   private _redactUrlParamsRegex: RegExp | undefined;
 
-  private _runningToolName: string | undefined;
   private _pendingUnhandledRejections: unknown[] = [];
   private _unhandledRejectionListeners = new Set<(reason: unknown) => void>();
   private _onUnhandledRejection = (reason: unknown) => {
@@ -365,7 +365,10 @@ export class Context {
     }
     this._video.fileNames.push(fileName);
     const { cursor, ...startParams } = this._video.params;
-    await page.screencast.start({ path: fileName, ...startParams });
+    await page.screencast.start({ path: fileName, ...startParams }).catch(error => {
+      throwIfExecutableMissing(error, 'ffmpeg', this.config.skillMode);
+      throw error;
+    });
     if (cursor) {
       // Show the cursor only, the action title is what `browser_video_show_actions` is for.
       await page.screencast.showActions({ cursor: 'pointer', duration: kCursorDuration, style: { title: 'display: none' } });
@@ -428,14 +431,6 @@ export class Context {
     }
     this._routes = this._routes.filter(r => !toRemove.includes(r));
     return toRemove.length;
-  }
-
-  isRunningTool() {
-    return this._runningToolName !== undefined;
-  }
-
-  setRunningTool(name: string | undefined) {
-    this._runningToolName = name;
   }
 
   private async _setupRequestInterception(context: playwrightTypes.BrowserContext, disposables: Disposable[]) {

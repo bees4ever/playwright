@@ -46,6 +46,8 @@ type AttachOptions = {
   cdp?: string;
   endpoint?: string;
   extension?: boolean | string;
+  'session-color'?: string;
+  'tab-group'?: boolean;
 };
 
 type OpenOptions = {
@@ -202,7 +204,7 @@ export async function program(options?: { args?: MinimistArgs, embedderVersion?:
       const detachEntry = registry.entry(clientInfo, sessionName);
       if (detachEntry && !detachEntry.config.attached)
         output.errorDetachNotAttached(sessionName);
-      const { wasOpen } = detachEntry ? await new Session(detachEntry).stop() : { wasOpen: false };
+      const { wasOpen } = detachEntry ? await new Session(detachEntry).stop({ closeTabs: !!args['close-tabs'] }) : { wasOpen: false };
       output.detach(sessionName, wasOpen);
       return;
     }
