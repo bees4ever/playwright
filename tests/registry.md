@@ -766,6 +766,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `CD-051` | `library/chromium/session.spec.ts` | should emit close event when page closes |
 | `CD-052` | `library/chromium/session.spec.ts` | should work with newBrowserCDPSession |
 | `CD-053` | `library/chromium/connect-over-cdp.spec.ts` | should connect when another client inspects a terminated shared worker |
+| `CD-054` | `library/chromium/connect-over-cdp.spec.ts` | should not wait for a busy page longer than maxPageAttachTime |
 
 ### CF — Code frame
 
@@ -4118,6 +4119,7 @@ subsystem, add a row to the Subsystems table. Then update this file:
 | `PA-054` | `library/page-close.spec.ts` | should reject response.finished if page closes |
 | `PA-055` | `library/page-close.spec.ts` | should not throw when continuing while page is closing |
 | `PA-056` | `library/page-close.spec.ts` | should not throw when continuing after page is closed |
+| `PA-057` | `page/page-basic.spec.ts` | should prefix the error message with the api name |
 
 ### PC — Playwright client
 
