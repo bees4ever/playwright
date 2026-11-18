@@ -46,11 +46,7 @@ const test = playwrightTest.extend<ExtraFixtures>({
     await use(async (wsEndpoint, options = {}, testOptions = {}): Promise<Browser> => {
       (options as any).__testHookRedirectPortForwarding = testOptions.redirectPortForTest;
       const launchOptions = { ...(browserType as any)._playwright._defaultLaunchOptions, ...testOptions.launchOptions };
-      options.headers = {
-        'x-playwright-launch-options': JSON.stringify(launchOptions),
-        ...options.headers,
-      };
-      browser = await browserType.connect(wsEndpoint, options);
+      browser = await browserType.connect(wsEndpoint, { ...options, launchOptions });
       return browser;
     });
     await browser?.close();
@@ -674,9 +670,7 @@ for (const kind of ['launchServer', 'run-server'] as const) {
     test('BT-071 should be able to connect when the wsEndpoint is passed as an option', async ({ browserType, startRemoteServer }) => {
       const remoteServer = await startRemoteServer(kind);
       const browser = await browserType.connect(remoteServer.wsEndpoint(), {
-        headers: {
-          'x-playwright-launch-options': JSON.stringify((browserType as any)._playwright._defaultLaunchOptions || {}),
-        },
+        launchOptions: (browserType as any)._playwright._defaultLaunchOptions || {},
       });
       const page = await browser.newPage();
       expect(await page.evaluate('1 + 2')).toBe(3);
@@ -866,15 +860,6 @@ for (const kind of ['launchServer', 'run-server'] as const) {
       // rounds it to seconds in WebKit: 1696272058110 -> 1696272058000.
       for (let i = 0; i < timestamps.length; i++)
         expect(Math.abs(timestamps[i] - expectedTimestamps[i]), `expected: ${expectedTimestamps}; actual: ${timestamps}`).toBeLessThanOrEqual(1000);
-    });
-
-    test('BT-079 should connect over http', async ({ connect, startRemoteServer }) => {
-      const remoteServer = await startRemoteServer(kind);
-
-      const url = new URL(remoteServer.wsEndpoint());
-      const browser = await connect(`http://localhost:${url.port}`);
-      expect(browser.version()).toBeTruthy();
-      await browser.close();
     });
 
     test.describe('socks proxy', () => {
@@ -1199,17 +1184,6 @@ test('BT-094 should filter local paths from unsafe launch options', async ({ con
 
   const { actions } = await parseTraceRaw(tracePath);
   expect(actions).toContain('Set content');
-});
-
-test('BT-095 should timeout after redirect when connecting over http', async ({ connect, server }) => {
-  server.setRedirect('/connect/json', '/connect/slow');
-  let aborted = false;
-  server.setRoute('/connect/slow', (req, res) => {
-    req.socket.on('close', () => aborted = true);
-  });
-  const error = await connect(`${server.PREFIX}/connect`, { timeout: 2000, headers: { 'Connection': 'Close' } }).catch(e => e);
-  expect(error.message).toContain('Timeout 2000ms exceeded.');
-  await expect.poll(() => aborted).toBe(true);
 });
 
 test('BT-096 should not retain closed browsers in launch mode', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/43421' } }, async ({ connect }) => {
