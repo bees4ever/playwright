@@ -17,6 +17,19 @@
 import url from 'url';
 import { contextTest as it, expect } from '../config/browserTest';
 
+it.use({
+  launchOptions: async ({ launchOptions, browserName }, use) => {
+    await use(browserName === 'firefox' ? {
+      ...launchOptions,
+      firefoxUserPrefs: {
+        ...launchOptions.firefoxUserPrefs,
+        // Test DOM fullscreen without requiring a window manager under Xvfb.
+        'full-screen-api.ignore-widgets': true,
+      },
+    } : launchOptions);
+  },
+});
+
 it('CA-001 SharedArrayBuffer should work @smoke', async function({ contextFactory, httpsServer }) {
   const context = await contextFactory({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
@@ -242,9 +255,10 @@ it('CA-019 window.GestureEvent in WebKit', async ({ page, server, browserName })
   expect(type).toBe(browserName === 'webkit' ? 'function' : 'undefined');
 });
 
-it('CA-020 requestFullscreen', async ({ page, server, browserName, headless }) => {
+it('CA-020 requestFullscreen', { annotation: { type: 'issue', description: 'https://github.com/microsoft/playwright/issues/44288' } }, async ({ page, server, browserName, platform }) => {
   it.info().annotations.push({ type: 'issue', description: 'https://github.com/microsoft/playwright/issues/22832' });
-  it.fixme(browserName === 'firefox' && !headless, 'Error: Request for fullscreen was denied because requesting element is not in the currently focused tab');
+  it.info().annotations.push({ type: 'issue', description: 'https://issues.chromium.org/issues/589825018' });
+  it.info().annotations.push({ type: 'issue', description: 'https://github.com/microsoft/playwright-browsers/issues/2768' });
   await page.goto(server.EMPTY_PAGE);
   await page.evaluate(() => {
     const result = new Promise(resolve => document.addEventListener('fullscreenchange', resolve));
@@ -258,6 +272,22 @@ it('CA-020 requestFullscreen', async ({ page, server, browserName, headless }) =
     return result;
   });
   expect(await page.evaluate(() => !!document.fullscreenElement)).toBeFalsy();
+
+  it.fixme(browserName === 'webkit' && platform !== 'linux', 'requestFullscreen() in a popup rejects with InvalidStateError on Windows and hangs the context teardown on macOS');
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.evaluate(url => window.open(url, 'popup', 'popup'), server.EMPTY_PAGE),
+  ]);
+  await popup.waitForLoadState();
+  await popup.evaluate(() => {
+    document.addEventListener('keydown', event => {
+      if (event.key === 'f')
+        document.documentElement.requestFullscreen().then(() => window['fullscreenResult'] = 'success', error => window['fullscreenResult'] = String(error));
+    });
+  });
+  await popup.keyboard.press('f');
+  await expect.poll(() => popup.evaluate(() => window['fullscreenResult'])).toBe('success');
+  expect(await popup.evaluate(() => document.fullscreenElement === document.documentElement)).toBe(true);
 });
 
 it('CA-021 should send no Content-Length header for GET requests with a Content-Type', async ({ page, server }) => {

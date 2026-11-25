@@ -168,11 +168,11 @@ export function getFromCompilationCache(filename: string, contentHash: string, m
   };
 }
 
-export function serializeCompilationCache(): SerializedCompilationCache {
+export function serializeCompilationCache(options: { includeFileDependencies?: boolean } = {}): SerializedCompilationCache {
   return {
     sourceMaps: [...sourceMaps.entries()],
     memoryCache: [...memoryCache.entries()],
-    fileDependencies: [...fileDependencies.entries()].map(([filename, deps]) => ([filename, [...deps]])),
+    fileDependencies: options.includeFileDependencies === false ? [] : [...fileDependencies.entries()].map(([filename, deps]) => ([filename, [...deps]])),
   };
 }
 
@@ -279,6 +279,10 @@ export function affectedTestFiles(changes: string[]): string[] {
 
 export function internalDependenciesForTestFile(filename: string): Set<string> | undefined{
   return fileDependencies.get(filename);
+}
+
+export function testFileNames(): string[] {
+  return [...fileDependencies.keys()];
 }
 
 export function dependenciesForTestFile(filename: string): Set<string> {
